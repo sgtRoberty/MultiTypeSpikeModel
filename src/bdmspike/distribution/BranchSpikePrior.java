@@ -102,6 +102,7 @@ public class BranchSpikePrior extends Distribution {
 
 
     public double getExpNrHiddenEventsForBranch(Node node) {
+        // Forward in time calculation i.e. Time(parentNode) < Time(node)
         double expNrHiddenEvents = 0;
         int nodeIndex = parameterization.getNodeIntervalIndex(node, finalSampleOffset);
         int parentIndex = parameterization.getNodeIntervalIndex(node.getParent(), finalSampleOffset);
@@ -110,19 +111,15 @@ public class BranchSpikePrior extends Distribution {
 
         if (nodeIndex == parentIndex) return(getExpNrHiddenEventsForInterval(t0, T));
 
-        else {
-            for (int i = parentIndex; i <= nodeIndex; i++) {
-                double t1 = intervalEndTimes[i];
-                if (t1 < T) {
-                    expNrHiddenEvents += getExpNrHiddenEventsForInterval(t0, t1);
-                    t0 = t1;
-                }
+        for (int i = parentIndex; i <= nodeIndex - 1; i++) {
+            double t1 = intervalEndTimes[i];
+                expNrHiddenEvents += getExpNrHiddenEventsForInterval(t0, t1);
+                t0 = t1;
             }
 
-            expNrHiddenEvents += getExpNrHiddenEventsForInterval(t0, T);
+        expNrHiddenEvents += getExpNrHiddenEventsForInterval(t0, T);
 
-            return (expNrHiddenEvents);
-        }
+        return (expNrHiddenEvents);
     }
 
 //    public double getExpNrHiddenEventsForBranch(Node node) {
@@ -295,14 +292,18 @@ public class BranchSpikePrior extends Distribution {
 
         BranchSpikePrior bsp = new BranchSpikePrior();
         bsp.initByName("parameterization", parameterization, "tree", myTree, "gammaShape", "1.0", "spikes", "1.0 0.5 0.1");
+
 //        System.out.println(bsp.getExpNrHiddenEventsForInterval(0.4, 0.5) + bsp.getExpNrHiddenEventsForInterval(0.5, 1.0)
 //                + bsp.getExpNrHiddenEventsForInterval(1.0, 1.5) + bsp.getExpNrHiddenEventsForInterval(1.5, 1.79)
 //        );
+
         double[] intervalEndTimes = parameterization.getIntervalEndTimes();
         Node node = myTree.getNode(5);
-        System.out.println(parameterization.getNodeIntervalIndex(node.getParent(), 0));
-        System.out.println(parameterization.getNodeIntervalIndex(node, 0));
-        System.out.println(intervalEndTimes[1]);
+        System.out.println(bsp.calculateLogP());
+//        System.out.println(parameterization.getNodeIntervalIndex(node.getParent(), 0));
+//        System.out.println(parameterization.getNodeIntervalIndex(node, 0));
+//        System.out.println(intervalEndTimes[1]);
+//        System.out.println(bsp.getExpNrHiddenEventsForBranch(node));
 
 //        System.out.println(parameterization.getNodeTime(node, 0));
 //        System.out.println(parameterization.getNodeTime(node.getParent(), 0))
