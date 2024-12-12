@@ -1,4 +1,4 @@
-package mutitypespike.clockmodel;
+package multitypespike.clockmodel;
 
 import beast.base.core.Function;
 import beast.base.core.Input;
