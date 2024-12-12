@@ -125,7 +125,7 @@ public class BranchSpikePriorTest {
             randomTree.initByName("taxa", alignment, "populationModel", populationModel);
 
             for (int n = 1; n < randomTree.getNodeCount() - 1; n++) {
-                Node node = randomTree.getNode(5);
+                Node node = randomTree.getNode(n);
 
                 double trueBranchTime = parameterization.getNodeTime(node, 0)
                         - parameterization.getNodeTime(node.getParent(), 0);
