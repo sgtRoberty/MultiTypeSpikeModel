@@ -4,11 +4,12 @@
     <depends on='BDMM-Prime' version='2.2.2'/>
 
     <service type="beast.base.core.BEASTInterface">
+        <provider classname="multitypespike.clockmodel.PunctuatedClockModel"/>
+        <provider classname="multitypespike.distribution.BranchSpikePrior"/>
+        <provider classname="multitypespike.operator.SpikeUpRateDown"/>
+<!--        <provider classname="multitypespike.distribution.BinomialPrior"/>-->
 
 
-        // FOR TESTING ONLY: TO BE REMOVED //
-        <provider classname="gammaspike.clockmodel.PunctuatedClockModel"/>
-        <provider classname="gammaspike.distribution.BranchSpikePrior"/>
 
 
     </service>
