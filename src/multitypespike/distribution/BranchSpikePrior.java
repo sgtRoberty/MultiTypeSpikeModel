@@ -9,9 +9,11 @@ import beast.base.evolution.tree.Tree;
 import beast.base.evolution.tree.TreeParser;
 import beast.base.inference.Distribution;
 import beast.base.inference.State;
+import beast.base.inference.distribution.Poisson;
 import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.RealParameter;
 import beast.base.inference.util.InputUtil;
+import beast.base.util.Randomizer;
 import org.apache.commons.math.MathException;
 import org.apache.commons.math.distribution.GammaDistribution;
 import org.apache.commons.math.distribution.GammaDistributionImpl;
@@ -264,23 +266,14 @@ public class BranchSpikePrior extends Distribution {
         int dimension = treeInput.get().getNodeCount() - 1;
 
         spikesInput.get().setDimension(dimension);
-        Integer NrHiddenEvents = 0;
+        Long NrHiddenEvents = 0L;
 
         for (int nodeNr = 0; nodeNr < dimension; nodeNr++) {
 
             Node node = treeInput.get().getNode(nodeNr);
             double expNrHiddenEvents = getExpNrHiddenEventsForBranch(node);
 
-            if (expNrHiddenEvents > 0) {
-
-                //Sample from poisson(mu) where mu = expNrHiddenEvents
-                PoissonDistribution poisson = new PoissonDistributionImpl(expNrHiddenEvents);
-                try {
-                    NrHiddenEvents = poisson.inverseCumulativeProbability(random.nextFloat());
-                } catch (MathException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            NrHiddenEvents = Randomizer.nextPoisson(expNrHiddenEvents);
 
 
             // Sample spikes from gamma distribution
