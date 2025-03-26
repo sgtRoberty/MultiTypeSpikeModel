@@ -278,19 +278,12 @@ public class BranchSpikePrior extends Distribution {
 
             // Sample spikes from gamma distribution
             double alpha = gammaShape.getValue() * (NrHiddenEvents + 1);
-            double beta = 1 / gammaShape.getValue();
+            // double beta = 1 / gammaShape.getValue();
+            // Below lambda is 1/beta, so just use gammaShape.getValue()
 
-
-            GammaDistribution gamma = new GammaDistributionImpl(alpha, beta);
-
-            try {
-                double spike = gamma.inverseCumulativeProbability(random.nextFloat());
+                double spike = Randomizer.nextGamma(alpha, gammaShape.getValue());
                 spikesInput.get().setValue(nodeNr, spike);
 
-            } catch (MathException e) {
-                e.printStackTrace();
-                throw new IllegalArgumentException("Unexpected error when sampling from Gamma(" + alpha + ", " + beta + ")");
-            }
         }
     }
 
