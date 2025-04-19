@@ -7,7 +7,6 @@ import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
 import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.RealParameter;
-import beast.base.inference.util.InputUtil;
 
 // Based on <GammaSpikeModel>  Copyright (C) <2024>  <Jordan Douglas>
 
@@ -23,10 +22,8 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "burst size is 0 if this is false", Input.Validate.OPTIONAL);
 
     int nRates;
-    double[] ratesArray;
     public void initAndValidate() {
         this.nRates = treeInput.get().getNodeCount();
-        this.ratesArray = new double[this.nRates];
     }
 
 
@@ -94,14 +91,7 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     }
 
 
-    public double[] getRatesArray() {
-
-        for (int i = 0; i < nRates; i++) {
-            Node node = this.treeInput.get().getNode(i);
-            ratesArray[i] = this.getRateForBranch(node);
-            //Log.warning("rate " + i + " = " + ratesArray[i]);
-        }
-        return ratesArray;
-    }
-
 }
+
+
+
