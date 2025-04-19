@@ -39,16 +39,12 @@ public class BranchSpikePrior extends Distribution {
             "if provided, the difference in time between the final sample and the end of the BD process",
             new RealParameter("0.0"));
 
-//    final public Input<BooleanParameter> indicatorInput = new Input<>("indicator",
-//            "indicator for presence/absence of spikes, for model selection",
-//            new BooleanParameter("true"));
 
 
     public Parameterization parameterization;
     int nTypes;
     double[] intervalEndTimes, A, B;
     private double lambda_i, mu_i, psi_i, t_i, A_i, B_i, finalSampleOffset;
-    RealParameter spikeShape;
 
     
     @Override
