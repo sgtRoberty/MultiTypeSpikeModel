@@ -5,21 +5,23 @@ import beast.base.core.Input;
 import beast.base.evolution.branchratemodel.BranchRateModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
+import beast.base.evolution.tree.TreeParser;
 import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.RealParameter;
+import beast.base.inference.util.InputUtil;
 
-// Based on <GammaSpikeModel>  Copyright (C) <2024>  <Jordan Douglas>
+// Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
 
 
 public class PunctuatedClockModel extends BranchRateModel.Base {
-    final public Input<Tree> treeInput = new Input<>("tree", "the tree this relaxed clock is associated with.", Input.Validate.REQUIRED);
-    final public Input<Function> spikeMeanInput = new Input<>("spikeMean", "mean spike size.", Input.Validate.REQUIRED);
-    final public Input<RealParameter> spikesInput = new Input<>("spikes", "one spike size per branch.", Input.Validate.REQUIRED);
-    final public Input<RealParameter> ratesInput = new Input<>("rates", "the rates associated with nodes in the tree for sampling of individual rates among branches.", Input.Validate.OPTIONAL);
+    final public Input<Tree> treeInput = new Input<>("tree", "tree input", Input.Validate.REQUIRED);
+    final public Input<Function> spikeMeanInput = new Input<>("spikeMean", "spike scaling hyper-parameter", Input.Validate.REQUIRED);
+    final public Input<RealParameter> spikesInput = new Input<>("spikes", "spikes associated with each branch on the tree", Input.Validate.REQUIRED);
+    final public Input<RealParameter> ratesInput = new Input<>("rates", "rates associated with nodes in the tree for sampling of individual rates among branches", Input.Validate.OPTIONAL);
 
     final public Input<BooleanParameter> relaxedInput = new Input<>("relaxed", "if false then use strict clock", Input.Validate.OPTIONAL);
-    final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "burst size is 0 if this is false", Input.Validate.OPTIONAL);
+    final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "if false then no spikes are inferred", Input.Validate.OPTIONAL);
 
     int nRates;
     public void initAndValidate() {
@@ -28,10 +30,14 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
 
 
     public double getSpikeSize(Node node) {
+//        System.out.println("indicator:" + indicatorInput.get().getValue());
 
         if (indicatorInput.get() != null && !indicatorInput.get().getValue()) {
             return 0;
         }
+
+        // return 0 for the root node
+        if (node.isRoot()) return 0.0;
 
         double spikeMean = spikeMeanInput.get().getDoubleValues()[0];
 
@@ -48,7 +54,6 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         }
 
         return 1;
-
 
     }
     @Override
@@ -73,23 +78,22 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     @Override
     protected boolean requiresRecalculation() {
 
-        return true;
+//        return true;
 
-//        if (InputUtil.isDirty(spikesInput) || InputUtil.isDirty(meanRateInput) || InputUtil.isDirty(spikeMeanInput)) {
-//            return true;
-//        }
-//
-//        if (relaxedInput.get() != null && InputUtil.isDirty(relaxedInput)) {
-//            return true;
-//        }
-//
-//        if (indicatorInput.get() != null && InputUtil.isDirty(indicatorInput)) {
-//            return true;
-//        }
-//
-//        return false;
+        if (InputUtil.isDirty(spikesInput) || InputUtil.isDirty(meanRateInput) || InputUtil.isDirty(spikeMeanInput)) {
+            return true;
+        }
+
+        if (relaxedInput.get() != null && InputUtil.isDirty(relaxedInput)) {
+            return true;
+        }
+
+        if (indicatorInput.get() != null && InputUtil.isDirty(indicatorInput)) {
+            return true;
+        }
+
+        return false;
     }
-
 
 }
 

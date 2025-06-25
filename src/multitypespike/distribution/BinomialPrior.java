@@ -11,11 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+// Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
+
 @Description("A prior on a boolean")
 public class BinomialPrior extends Distribution {
 
 
-	final public Input<RealParameter> pInput = new Input<>("p", "probabiltiy of seeing a true", Input.Validate.REQUIRED);
+	final public Input<RealParameter> pInput = new Input<>("p", "probability of seeing a true", Input.Validate.REQUIRED);
 	final public Input<BooleanParameter> xInput = new Input<>("x", "", Input.Validate.REQUIRED);
 
 	public double calculateLogP() {

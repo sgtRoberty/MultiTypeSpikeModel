@@ -7,7 +7,7 @@ import beast.base.evolution.operator.kernel.BactrianScaleOperator;
 import beast.base.inference.parameter.RealParameter;
 import beast.base.util.Randomizer;
 
-// Based on <GammaSpikeModel>  Copyright (C) <2024>  <Jordan Douglas>
+// Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
 @Description("Moves a spike up and the corresponding rate down")
 public class SpikeUpRateDown extends BactrianScaleOperator {
