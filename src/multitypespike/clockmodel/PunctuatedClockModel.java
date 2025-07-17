@@ -30,7 +30,6 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
 
 
     public double getSpikeSize(Node node) {
-//        System.out.println("indicator:" + indicatorInput.get().getValue());
 
         if (indicatorInput.get() != null && !indicatorInput.get().getValue()) {
             return 0;
@@ -78,24 +77,22 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     @Override
     protected boolean requiresRecalculation() {
 
-        return true;
+//        return true;
 
-//        if (InputUtil.isDirty(spikesInput) || InputUtil.isDirty(meanRateInput) || InputUtil.isDirty(spikeMeanInput)) {
-////            if(InputUtil.isDirty(spikesInput)) System.out.println("spikesInput dirty");
-////            if(InputUtil.isDirty(meanRateInput)) System.out.println("meanRateInput dirty");
-////            if(InputUtil.isDirty(spikeMeanInput)) System.out.println("spikeMeanInput dirty");
-//            return true;
-//        }
-//
-//        if (relaxedInput.get() != null && InputUtil.isDirty(relaxedInput)) {
-//            return true;
-//        }
-//
-//        if (indicatorInput.get() != null && InputUtil.isDirty(indicatorInput)) {
-//            return true;
-//        }
-//
-//        return false;
+        if (InputUtil.isDirty(spikesInput) || InputUtil.isDirty(meanRateInput) ||
+            InputUtil.isDirty(spikeMeanInput) || InputUtil.isDirty(ratesInput)) {
+            return true;
+        }
+
+        if (relaxedInput.get() != null && InputUtil.isDirty(relaxedInput)) {
+            return true;
+        }
+
+        if (indicatorInput.get() != null && InputUtil.isDirty(indicatorInput)) {
+            return true;
+        }
+
+        return false;
 
     }
 
