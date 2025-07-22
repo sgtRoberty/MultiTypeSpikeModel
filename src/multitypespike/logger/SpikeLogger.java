@@ -1,4 +1,4 @@
-package multitypespike.clockmodel;
+package multitypespike.logger;
 
 import java.io.PrintStream;
 
@@ -8,24 +8,24 @@ import beast.base.core.Input;
 import beast.base.core.Loggable;
 import beast.base.core.Input.Validate;
 import beast.base.inference.CalculationNode;
-import beast.base.inference.parameter.RealParameter;
+import multitypespike.clockmodel.PunctuatedClockModel;
 
 // Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
-@Description("Scales each spike by the spikeMean parameter")
-public class SpikeSize extends CalculationNode implements Function, Loggable {
-    final public Input<RealParameter> spikesInput = new Input<>("spikes", "argument to be summed", Validate.REQUIRED);
-    final public Input<RealParameter> spikeMeanInput = new Input<>("spikeMean", "spike mean parameter", Validate.REQUIRED);
+@Description("Logs spike values per branch scaled by the spike mean parameter")
+public class SpikeLogger extends CalculationNode implements Function, Loggable {
+    final public Input<PunctuatedClockModel> clockModelInput =
+            new Input<>("clock", "Punctuated clock model input", Validate.REQUIRED);
+
 
 
     @Override
     public void initAndValidate() {
-
     }
 
     @Override
     public int getDimension() {
-        return spikesInput.get().getDimension();
+        return clockModelInput.get().getSpikeDimension();
     }
 
     @Override
@@ -34,12 +34,10 @@ public class SpikeSize extends CalculationNode implements Function, Loggable {
     }
 
 
-
     @Override
     public double getArrayValue(int dim) {
-        return spikesInput.get().getValue(dim) * spikeMeanInput.get().getValue();
+        return clockModelInput.get().getSpikeSize(dim);
     }
-
 
 
     /**
@@ -49,7 +47,7 @@ public class SpikeSize extends CalculationNode implements Function, Loggable {
     public void init(PrintStream out) {
         for (int i = 0; i < this.getDimension(); i ++) {
             String id = this.getID();
-            if (id == null || id.equals("")) id = "weightedSpike";
+            if (id == null || id.equals("")) id = "scaledSpike";
             out.print(id + "." + i + "\t");
         }
     }
@@ -66,4 +64,4 @@ public class SpikeSize extends CalculationNode implements Function, Loggable {
         // nothing to do
     }
 
-} // class Sum
+}

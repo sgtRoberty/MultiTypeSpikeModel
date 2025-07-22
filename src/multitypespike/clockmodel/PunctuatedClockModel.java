@@ -5,10 +5,12 @@ import beast.base.core.Input;
 import beast.base.evolution.branchratemodel.BranchRateModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
-import beast.base.evolution.tree.TreeParser;
+//import beast.base.inference.distribution.ParametricDistribution;
 import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.RealParameter;
 import beast.base.inference.util.InputUtil;
+import beast.base.util.Randomizer;
+//import org.apache.commons.math.MathException;
 
 // Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
@@ -16,45 +18,98 @@ import beast.base.inference.util.InputUtil;
 
 public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<Tree> treeInput = new Input<>("tree", "tree input", Input.Validate.REQUIRED);
-    final public Input<Function> spikeMeanInput = new Input<>("spikeMean", "mean parameter for the gamma distribution of each spike", Input.Validate.REQUIRED);
+    final public Input<Function> spikeMeanInput = new Input<>("spikeMean", "mean parameter for each spike", Input.Validate.REQUIRED);
     final public Input<RealParameter> spikesInput = new Input<>("spikes", "spikes associated with each branch on the tree", Input.Validate.REQUIRED);
     final public Input<RealParameter> ratesInput = new Input<>("rates", "rates associated with nodes in the tree for sampling of individual rates among branches", Input.Validate.OPTIONAL);
-
+//    final public Input<ParametricDistribution> rateDistInput = new Input<>("distr", "the distribution governing the rates among branches. "
+//            + "Must have mean of 1. The clock.rate parameter can be used to change the mean rate", Input.Validate.OPTIONAL);
     final public Input<BooleanParameter> relaxedInput = new Input<>("relaxed", "if false then use strict clock", Input.Validate.OPTIONAL);
     final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "if false then no spikes are inferred", Input.Validate.OPTIONAL);
+    final public Input<Boolean> noSpikeOnDatedTipsInput = new Input<>("noSpikeOnDatedTips", "Set to true if dated tips should have a spike of 0", false);
 
     int nRates;
+
+
+    @Override
     public void initAndValidate() {
+
         this.nRates = treeInput.get().getNodeCount();
+
+        // Initialise relaxed branch rates from a LogNormal(log(1),0.5) distribution
+        if (ratesInput.get() != null && ratesInput.get().getDimension() != this.nRates) {
+            ratesInput.get().setDimension(this.nRates);
+            for (int i = 0; i < this.nRates; i ++) {
+                double val = Randomizer.nextLogNormal(1, 0.5, true);
+                ratesInput.get().setValue(i, val);
+            }
+        }
+
+        // If provided, initialise rates from the relaxed branch rate distribution itself
+//        ParametricDistribution distribution = rateDistInput.get();
+//        if (distribution != null) {
+//
+//            Double[][] initialRates0 = null;
+//            try {
+//                initialRates0 = distribution.sample(this.nRates);
+//            } catch (MathException e) {
+//                e.printStackTrace();
+//            }
+//            Double [] initialRates = new Double[this.nRates];
+//            for (int i = 0; i < this.nRates; i++) {
+//                initialRates[i] = initialRates0[i][0];
+//            }
+//            RealParameter other = new RealParameter(initialRates);
+//            ratesInput.get().assignFromWithoutID(other);
+//        }
+
+    }
+
+    /**
+     * Get the size of a spike (this will be zero if the node is the root or a sampled ancestor)
+     * @param dim
+     * @return
+     */
+    public double getSpikeSize(int dim) {
+        Node node = treeInput.get().getNode(dim);
+        return getSpikeSize(node);
     }
 
 
+    /**
+     * Get the size of a spike (this will be zero if the node is the root or a sampled ancestor)
+     * @param node
+     * @return
+     */
     public double getSpikeSize(Node node) {
 
+        // Spike indicator switch
         if (indicatorInput.get() != null && !indicatorInput.get().getValue()) {
             return 0;
         }
 
-        // return 0 for the root node
-        if (node.isRoot()) return 0.0;
-
-        double spikeMean = spikeMeanInput.get().getDoubleValues()[0];
-
-        return spikesInput.get().getValue(node.getNr()) * spikeMean;
-
-    }
-
-    public double getBranchRate(Node node) {
-
-        if (ratesInput.get() == null) return 1;
-
-        if (relaxedInput.get() == null || relaxedInput.get().getValue()) {
-            return ratesInput.get().getValue(node.getNr());
+        // Suppress spikes on dated tips if requested
+        if (noSpikeOnDatedTipsInput.get()) {
+            if (node.isLeaf() && node.getHeight() > 0) {
+                return 0;
+            }
         }
 
-        return 1;
+        // Do not apply a spike to the origin branch
+        if (node.isRoot()) {
+            return 0;
+        }
 
+        // Do not apply a spike to sampled ancestor branches
+        if (node.isDirectAncestor()) {
+            return 0;
+        }
+
+        // Compute spike size
+        double spikeMean = spikeMeanInput.get().getDoubleValues()[0];
+        return spikesInput.get().getValue(node.getNr()) * spikeMean;
     }
+
+
     @Override
     public double getRateForBranch(Node node) {
 
@@ -63,21 +118,32 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         if (node.getLength() <= 0 || node.isDirectAncestor() || node.isRoot()) return baseRate;
 
 
-        double burstRate = getSpikeSize(node);
-        double branchRate = getBranchRate(node);
-        double branchDistance = node.getLength() * baseRate * branchRate + burstRate;
+        double relaxedBranchRate = getRelaxedBranchRate(node);
+        double spikeSize = getSpikeSize(node);
+        double branchDistance = node.getLength() * baseRate * relaxedBranchRate + spikeSize;
 
 
-        // Effective rate takes into account burst and base rate
+        // Effective rate takes into account spike and base rate
         double effectiveRate = branchDistance / node.getLength();
 
         return effectiveRate;
     }
 
+
+
+    public double getRelaxedBranchRate(Node node) {
+
+        if (ratesInput.get() == null) return 1;
+
+        if (relaxedInput.get() == null || relaxedInput.get().getValue()) {
+            return ratesInput.get().getValue(node.getNr());
+        }
+
+        return 1;
+    }
+
     @Override
     protected boolean requiresRecalculation() {
-
-//        return true;
 
         if (InputUtil.isDirty(spikesInput) || InputUtil.isDirty(meanRateInput) ||
             InputUtil.isDirty(spikeMeanInput) || InputUtil.isDirty(ratesInput)) {
@@ -94,6 +160,10 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
 
         return false;
 
+    }
+
+    public int getSpikeDimension() {
+        return spikesInput.get().getDimension();
     }
 
 }

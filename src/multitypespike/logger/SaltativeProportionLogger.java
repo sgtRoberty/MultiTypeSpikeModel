@@ -12,15 +12,14 @@ import java.io.PrintStream;
 
 // Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
-@Description("Logs the proportion of evolutionary distance across the tree that can be explained by abrupt change, as opposed to gradual")
-public class SaltativeProportionLogger  extends BEASTObject implements Loggable {
+@Description("Logs the proportion of total evolutionary distance across the tree that is attributable to punctuated evolution, as opposed to gradual evolution")
+public class SaltativeProportionLogger extends BEASTObject implements Loggable {
 
     final public Input<Tree> treeInput = new Input<>("tree", "tree", Input.Validate.REQUIRED);
     final public Input<PunctuatedClockModel> clockInput = new Input<>("clock", "the abrupt clock model", Input.Validate.REQUIRED);
 
     @Override
     public void initAndValidate() {
-        // TODO Auto-generated method stub
     }
 
     @Override
@@ -40,7 +39,7 @@ public class SaltativeProportionLogger  extends BEASTObject implements Loggable 
             if (node.getLength() <= 0 || node.isDirectAncestor() || node.isRoot()) continue;
 
             // Total distance on branch
-            double branchTime = node.isRoot() ? 0 : node.getLength();
+            double branchTime = node.getLength();
             double branchRate = clockInput.get().getRateForBranch(node);
             double branchDistance = branchTime*branchRate;
 
@@ -59,8 +58,6 @@ public class SaltativeProportionLogger  extends BEASTObject implements Loggable 
 
     @Override
     public void close(PrintStream out) {
-        // TODO Auto-generated method stub
-
     }
 
 }
