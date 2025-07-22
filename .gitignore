@@ -16,3 +16,8 @@
 .Rhistory
 .Rapp.history
 
+# Ignore BEAST2 files
+.out
+.log
+.trees
+beast_services.xml
