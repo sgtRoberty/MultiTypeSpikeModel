@@ -72,22 +72,7 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
             }
         }
 
-//        if(node.isRoot() || node.isDirectAncestor()) return 0;
-        
-        // Check that origin and sampled ancestor branch spikes are zero
-        if (node.isRoot()) {
-            if(spikesInput.get().getValue(node.getNr()) !=0) {
-                throw new IllegalArgumentException("Spike value must be zero for the origin branch." +
-                        " Found: " + spikesInput.get().getValue(node.getNr()) + " at node " + node.getNr());
-            }
-        }
-        if (node.isDirectAncestor()) {
-            if(spikesInput.get().getValue(node.getNr()) !=0) {
-                throw new IllegalArgumentException("Spike value must be zero for sampled ancestor branches." +
-                        " Found: " + spikesInput.get().getValue(node.getNr()) + " at node " + node.getNr());
-            }
-        }
-
+        if(node.isRoot() || node.isDirectAncestor()) return 0;
 
         // Compute spike size
         double spikeMean = spikeMeanInput.get().getDoubleValues()[0];

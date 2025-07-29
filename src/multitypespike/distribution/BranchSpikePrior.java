@@ -64,17 +64,11 @@ public class BranchSpikePrior extends Distribution {
 
         if (spikesInput.get().getDimension() != treeInput.get().getNodeCount()) {
             spikesInput.get().setDimension(treeInput.get().getNodeCount());
-
-            // Initialise origin and sampled ancestor branch spikes to zero
-//            for (int nodeNr = 0; nodeNr < treeInput.get().getNodeCount(); nodeNr++) {
-//                Node node = treeInput.get().getNode(nodeNr);
-//                if(node.isDirectAncestor()) spikesInput.get().setValue(nodeNr, 0.0);
-//                if(node.isRoot()) spikesInput.get().setValue(nodeNr, 0.0);
-//            }
         }
-        getExpNrHiddenEventsForInterval = (nTypes == 1) ? this::integral_2lambda_i_p_i : this::multiTypeMethod;
 
+        getExpNrHiddenEventsForInterval = (nTypes == 1) ? this::integral_2lambda_i_p_i : this::multiTypeMethod;
         expectedHiddenEvents.setDimension(treeInput.get().getNodeCount());
+
     }
 
 
@@ -335,7 +329,6 @@ public class BranchSpikePrior extends Distribution {
                 InputUtil.isDirty(finalSampleOffsetInput);
 
     }
-
 
 
 }
