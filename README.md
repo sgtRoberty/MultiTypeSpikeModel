@@ -1,3 +1,4 @@
+Forked from [EwanCiuffi/MultiTypeSpikeModel](https://github.com/EwanCiuffi/MultiTypeSpikeModel)
 # Multi-type Spike Model
 
 The **Multi-type Spike Model** is a BEAST 2 clock model for modelling **punctuated evolution** under structured birth–death processes.
