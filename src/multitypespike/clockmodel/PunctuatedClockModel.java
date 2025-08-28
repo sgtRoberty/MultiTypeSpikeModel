@@ -72,7 +72,7 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
             }
         }
 
-        if(node.isRoot() || node.isDirectAncestor()) return 0;
+        if (node.isRoot() || node.isDirectAncestor()) return 0;
 
         // Compute spike size
         double spikeMean = spikeMeanInput.get().getDoubleValues()[0];

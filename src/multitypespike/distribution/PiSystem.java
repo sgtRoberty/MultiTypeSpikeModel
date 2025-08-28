@@ -11,15 +11,15 @@ import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 
 public class PiSystem implements FirstOrderDifferentialEquations {
 
-    private final ContinuousOutputModel p0geCom;
+    private final ContinuousOutputModel[] p0geComArray;
 
     public double[][] b;
     public double[][][] M, b_ij;
 
     public double totalProcessLength;
 
-    public int nTypes;
-    public int nIntervals;
+    public int nTypes, nIntervals;
+    private int currentNodeNr;
     public double[] intervalEndTimes;
 
     protected int interval;
@@ -30,9 +30,9 @@ public class PiSystem implements FirstOrderDifferentialEquations {
 
     public ContinuousOutputModel[] integrationResults;
 
-    public PiSystem(Parameterization parameterization, Tree tree, ContinuousOutputModel p0geCom, double absoluteTolerance, double relativeTolerance) {
+    public PiSystem(Parameterization parameterization, Tree tree, ContinuousOutputModel[] p0geComArray, double absoluteTolerance, double relativeTolerance) {
 
-        this.p0geCom = p0geCom;
+        this.p0geComArray = p0geComArray;
         this.b = parameterization.getBirthRates();
         this.M = parameterization.getMigRates();
         this.b_ij = parameterization.getCrossBirthRates();
@@ -61,10 +61,18 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         return this.nTypes;
     }
 
-    private double[] getP0Ge(double time) {
+    public void setCurrentNodeNr(int nodeNr) {
+        this.currentNodeNr = nodeNr;
+    }
+
+    private ContinuousOutputModel getP0GeModel(int nodeNr) {
+        return p0geComArray[nodeNr];
+    }
+
+    public double[] getP0Ge(int nodeNr, double time) {
         //  p0:  (0 .. dim-1)
         //  ge: (dim .. 2*dim-1)
-
+        ContinuousOutputModel p0geCom = getP0GeModel(nodeNr);
         p0geCom.setInterpolatedTime(time);
         double[] p0ge = p0geCom.getInterpolatedState();
 
@@ -76,9 +84,10 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         return p0ge;
     }
 
+
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
-        double[] p0ge = getP0Ge(t);
+        double[] p0ge = getP0Ge(currentNodeNr, t);
 
         for (int i = 0; i< nTypes; i++) {
 
@@ -97,7 +106,7 @@ public class PiSystem implements FirstOrderDifferentialEquations {
 
     public void setInitialConditionsForPi(PiState state, double[] startTypePriorProbs) {
         double total = 0.0;
-        double[] p0geInit = getP0Ge(0);
+        double[] p0geInit = getP0Ge(currentNodeNr,0);
 
         for (int type = 0; type < nTypes; type++) {
             state.pi[type] = p0geInit[type + nTypes] * startTypePriorProbs[type];
@@ -110,13 +119,6 @@ public class PiSystem implements FirstOrderDifferentialEquations {
     }
 
 
-    /**
-     * Perform the integration of pi with initial conds between tStart and tEnd
-     * @param state
-     * @param tStart
-     * @param tEnd
-     * @return result of integration
-     */
     public void integrate(PiState state, double tStart, double tEnd) {
         piIntegrator.integrate(this, tStart, state.pi, tEnd, state.pi);
     }
@@ -128,6 +130,8 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         ContinuousOutputModel com = new ContinuousOutputModel();
         piIntegrator.clearStepHandlers();
         piIntegrator.addStepHandler(com);
+
+        setCurrentNodeNr(node.getNr());
 
         double thisTime = tStart;
         double tEnd = parameterization.getNodeTime(node, finalSampleOffset);
@@ -186,6 +190,7 @@ public class PiSystem implements FirstOrderDifferentialEquations {
                             Parameterization parameterization, double finalSampleOffset) {
 
         Node root = tree.getRoot();
+        setCurrentNodeNr(root.getNr());
 
         // Set initial conditions at root
         setInitialConditionsForPi(state, startTypePriorProbs);

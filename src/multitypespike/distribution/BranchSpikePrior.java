@@ -14,7 +14,6 @@ import beast.base.inference.util.InputUtil;
 import beast.base.util.Randomizer;
 import org.apache.commons.math.distribution.GammaDistribution;
 import org.apache.commons.math.distribution.GammaDistributionImpl;
-import org.apache.commons.math3.ode.ContinuousOutputModel;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 
@@ -52,21 +51,12 @@ public class BranchSpikePrior extends Distribution {
             "Birth-death-migration model distribution.", Input.Validate.OPTIONAL);
 
     public Parameterization parameterization;
-    int nTypes;
+    public int nTypes;
     private double[] intervalEndTimes, A, B;
     private double lambda_i, mu_i, psi_i, t_i, A_i, B_i, finalSampleOffset;
     private double[][] lambda_ij;
     public RealParameter expectedHiddenEvents = new RealParameter("0.0");
     private PiState piState;
-    private PiSystem piSystem;
-
-    // placeholders
-    private double absoluteTolerance = 0.001;
-    private double relativeTolerance = 0.001;
-
-//    private DoubleBinaryOperator getExpNrHiddenEventsForInterval;
-
-
 
     @Override
     public void initAndValidate() {
@@ -79,7 +69,7 @@ public class BranchSpikePrior extends Distribution {
             }
 
             if (bdmDistrInput == null || bdmDistrInput.get() == null) {
-                throw new IllegalArgumentException("'bdmmDistr' must be specified for multi-type analyses.");
+                throw new IllegalArgumentException("BirthDeathMigrationDistribution,'bdmDistr', must be specified for multi-type analyses.");
             }
         }
 
@@ -92,16 +82,28 @@ public class BranchSpikePrior extends Distribution {
             spikesInput.get().setDimension(treeInput.get().getNodeCount());
         }
 
+//        for (int nodeNr = 0; nodeNr < treeInput.get().getNodeCount(); nodeNr++) {
+//            Node node = treeInput.get().getNode(nodeNr);
+//            // Handle origin branch and sampled ancestor branches
+//            if (node.isRoot() || node.isDirectAncestor()) spikesInput.get().setValue(nodeNr, 0.0);
+//        }
+
         expectedHiddenEvents.setDimension(treeInput.get().getNodeCount());
     }
 
 
+    @Override
+    public double calculateLogP() {
+        if (nTypes == 1) return singleTypeCalculateLogP();
+        else return multiTypeCalculateLogP();
+    }
 
     private void computeConstants(double[] A, double[] B) {
 
         for (int i = parameterization.getTotalIntervalCount() - 1; i >= 0; i--) {
 
             double p_i_prev;
+
             if (i + 1 < parameterization.getTotalIntervalCount()) {
                 p_i_prev = get_p_i(parameterization.getBirthRates()[i + 1][0],
                         parameterization.getDeathRates()[i + 1][0],
@@ -235,7 +237,7 @@ public class BranchSpikePrior extends Distribution {
                 while (cumsum < MAX_CUM_SUM) {
                     // Probability of observing k hidden events P(k) under a Poisson(mu)
                     double logpk = -expNrHiddenEvents + k * Math.log(expNrHiddenEvents);
-                    for (int i = 2; i <= k; i++) logpk -= Math.log(i); // - log(k!)
+                    for (int n = 2; n <= k; n++) logpk -= Math.log(n); // - log(k!)
                     double pk = Math.exp(logpk);
                     cumsum += pk;
 
@@ -281,12 +283,6 @@ public class BranchSpikePrior extends Distribution {
     }
 
 
-    public double multiTypeCalculateLogP(){
-        this.integratePi();
-
-        // placeholder
-        return 0;
-    }
 
 
 //    public double typedExpNrHiddenEventsForInterval(int i, int nodeNr, double t0, double t1) {
@@ -318,15 +314,15 @@ public class BranchSpikePrior extends Distribution {
 
 
     public double typedExpNrHiddenEventsForInterval(int i, int nodeNr, double t0, double t1) {
-        ContinuousOutputModel p0geCom = bdmDistrInput.get().integrationResults[nodeNr];
 
-        TypedHiddenEventsODE ode = new TypedHiddenEventsODE(i, nodeNr, lambda_i, lambda_ij, nTypes, p0geCom, piState);
+        TypedHiddenEventsODE ode = new TypedHiddenEventsODE(i, nodeNr,
+                lambda_i, lambda_ij, nTypes, piState, bdmDistrInput.get().getIntegrationResults());
 
         FirstOrderIntegrator integrator = new DormandPrince54Integrator(
                 1e-6,     // min step
                 1.0,      // max step
-                1e-10,    // abs tolerance
-                1e-10     // rel tolerance
+                1e-8,    // abs tolerance
+                1e-8     // rel tolerance
         );
 
         double[] y = new double[] {0.0}; // initial value
@@ -365,37 +361,111 @@ public class BranchSpikePrior extends Distribution {
 
     private void integratePi(){
         this.piState = new PiState(parameterization.getNTypes());
-        this.piSystem = new PiSystem(parameterization, treeInput.get(),
-                bdmDistrInput.get().integrationResults[0], absoluteTolerance, relativeTolerance);
-
+        PiSystem piSystem = new PiSystem(
+                parameterization,
+                treeInput.get(),
+                bdmDistrInput.get().getIntegrationResults(),
+                1e-8,
+                1e-8
+        );
         piSystem.integratePi(treeInput.get(), piState, startTypePriorProbsInput.get().getDoubleValues(),
         parameterization, finalSampleOffset);
     }
 
 
-//    // Multi-type expected number of hidden events for interval (t0,t1)
-//    public double typedExpNrHiddenEventsForInterval(int i, double t0, double t1) {
-//        double expNrHiddenEvents = 0;
-//
-//        for (int k = 0; k < nSteps; k++) {
-//            double dt = times[k + 1] - times[k];
-//            double sum = 0;
-//
-//            for (int j = 0; j <= nTypes; j++) {
-//                int factor = (j == i) ? 2 : 1;
-//                sum += lambda_ij * p0[j] * dt * factor;
-//            }
-//            expNrHiddenEvents += sum * pi[i] * dt;
-//        }
-//        return expNrHiddenEvents;
-//    }
+    public double multiTypeCalculateLogP(){
+        logP = 0.0;
+
+        intervalEndTimes = parameterization.getIntervalEndTimes();
+        finalSampleOffset = finalSampleOffsetInput.get().getArrayValue(0);
+        computeConstants(A, B);
+
+        this.integratePi();
+
+        // Check spikeShape is positive
+        double spikeShape = spikeShapeInput.get().getValue();
+        if (spikeShape <= 0) {
+            return Double.NEGATIVE_INFINITY;
+        }
+
+        // Loop over all nodes in the tree
+        for (int nodeNr = 0; nodeNr < treeInput.get().getNodeCount(); nodeNr++) {
+            Node node = treeInput.get().getNode(nodeNr);
+            double branchSpike = spikesInput.get().getValue(nodeNr);
+
+            // Handle origin branch and sampled ancestor branches
+            if (node.isRoot() || node.isDirectAncestor()) {
+                expectedHiddenEvents.setValue(nodeNr, 0.0);
+
+                // Scaled spikes = 0 for origin branch and sampled ancestor branches
+                // Set a pseudo-prior for spikes when they are not included in the model
+                // This facilitates transitions between models of different dimensions
+                GammaDistribution gamma = new GammaDistributionImpl(spikeShape, 1.0 / spikeShape);
+                logP += gamma.logDensity(branchSpike);
+
+                continue;
+            }
+            for (int i = 0; nodeNr < nTypes; i++) {
+
+                // Compute expected number of hidden speciation events for this branch
+                double expNrHiddenEventsForTypeI = getTypedExpNrHiddenEventsForBranch(node, i);
+//                expectedHiddenEvents.setValue(nodeNr, expNrHiddenEventsForTypeI);
+
+                if (expNrHiddenEventsForTypeI > 0) {
+                    // Integrate over all possible spike values
+                    double branchP = 0.0;
+                    double cumsum = 0.0;
+                    int k = 0;
+
+                    while (cumsum < MAX_CUM_SUM) {
+                        // Probability of observing k hidden events P(k) under a Poisson(mu)
+                        double logpk = -expNrHiddenEventsForTypeI + k * Math.log(expNrHiddenEventsForTypeI);
+                        for (int n = 2; n <= k; n++) logpk -= Math.log(n); // - log(k!)
+                        double pk = Math.exp(logpk);
+                        cumsum += pk;
+
+                        // Number of spikes is k+1 unless parent of the node is a sampled ancestor (fake), in which case it's just k
+                        int nSpikes = node.getParent().isFake() ? k : k + 1;
+                        double alpha = spikeShape * nSpikes;
 
 
-    @Override
-    public double calculateLogP() {
-        if (nTypes == 1) return singleTypeCalculateLogP();
-        else return multiTypeCalculateLogP();
+                        double gammaLogP;
+                        if (nSpikes == 0) {
+                            // Spike must be zero if no speciation events (should not be needed as sampled ancestors already dealt with)
+                            gammaLogP = (branchSpike == 0) ? 0.0 : Double.NEGATIVE_INFINITY;
+                        } else {
+                            // Compute log-probability of observed spike under Gamma distribution
+                            GammaDistribution gamma = new GammaDistributionImpl(alpha, 1.0 / spikeShape);
+                            gammaLogP = gamma.logDensity(branchSpike);
+                        }
+
+                        // Only add valid probabilities to the branch likelihood
+                        if (Double.isFinite(gammaLogP)) {
+                            branchP += Math.exp(logpk + gammaLogP);
+                        }
+
+                        k++;
+                    }
+
+                    // Add log-likelihood for this branch
+                    logP += (branchP == 0.0) ? Double.NEGATIVE_INFINITY : Math.log(branchP);
+
+                } else {
+                    // Consistency check: If expectedNrHiddenEvents is zero, spike must be zero
+                    System.out.println("Expected number of hidden events is zero for non-sampled ancestor branch");
+                    logP += (branchSpike <= 0.0) ? 0.0 : Double.NEGATIVE_INFINITY;
+                }
+            }
+            // Numerical safeguard
+            if (Double.isInfinite(logP)) {
+                logP = Double.NEGATIVE_INFINITY;
+            }
+        }
+
+        return logP;
     }
+
+
 
 
 //    @Override
@@ -520,6 +590,10 @@ public class BranchSpikePrior extends Distribution {
         double spikeShape = spikeShapeInput.get().getValue();
         spikesInput.get().setDimension(dimension);
 
+        if (spikeShape <= 0) {
+            throw new IllegalArgumentException("Cannot sample spikes because spikeShape is non-positive " + spikeShape);
+        }
+
         for (int nodeNr = 0; nodeNr < dimension; nodeNr++) {
 
             Node node = treeInput.get().getNode(nodeNr);
@@ -531,15 +605,15 @@ public class BranchSpikePrior extends Distribution {
             }
 
             double expNrHiddenEvents = getExpNrHiddenEventsForBranch(node);
-            long NrHiddenEvents = Randomizer.nextPoisson(expNrHiddenEvents);
+            int nHiddenEvents = (int) Randomizer.nextPoisson(expNrHiddenEvents);
+            int nSpikes = node.getParent().isFake() ? nHiddenEvents : nHiddenEvents + 1;
 
-            // Determine alpha based on whether node is a true observed speciation event
-            double alpha;
-            alpha = (node.isFake()) ? spikeShape*NrHiddenEvents : spikeShape*(NrHiddenEvents + 1);
+            double alpha = spikeShape * nSpikes;
 
-            // Sample spike from Gamma distribution if alpha > 0
+            // Sample spike from Gamma distribution if nSpikes > 0
             double spike;
-            spike = (alpha == 0) ? 0.0: Randomizer.nextGamma(alpha, spikeShape);
+            spike = (nSpikes == 0) ? 0.0: Randomizer.nextGamma(alpha, spikeShape);
+            System.out.println("node: " + nodeNr + " spikes: " + spike);
 
             spikesInput.get().setValue(nodeNr, spike);
         }
