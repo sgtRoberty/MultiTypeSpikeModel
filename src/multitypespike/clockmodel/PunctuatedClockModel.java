@@ -23,23 +23,11 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "if false then no spikes are inferred", Input.Validate.OPTIONAL);
     final public Input<Boolean> noSpikeOnDatedTipsInput = new Input<>("noSpikeOnDatedTips", "Set to true if dated tips should have a spike of 0", false);
 
-    int nRates;
 
 
     @Override
     public void initAndValidate() {
-
-        this.nRates = treeInput.get().getNodeCount();
-
-        // Initialise relaxed branch rates from a LogNormal(log(1),0.5) distribution
-        if (ratesInput.get() != null && ratesInput.get().getDimension() != this.nRates) {
-            ratesInput.get().setDimension(this.nRates);
-            for (int i = 0; i < this.nRates; i ++) {
-                double val = Randomizer.nextLogNormal(1, 0.5, true);
-                ratesInput.get().setValue(i, val);
-            }
-        }
-
+        ratesInput.get().setDimension(treeInput.get().getNodeCount());
     }
 
     /**
@@ -72,7 +60,7 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
             }
         }
 
-        if(node.isRoot() || node.isDirectAncestor()) return 0;
+        if (node.isRoot() || node.isDirectAncestor()) return 0;
 
         // Compute spike size
         double spikeMean = spikeMeanInput.get().getDoubleValues()[0];
@@ -80,12 +68,13 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     }
 
 
+
     @Override
     public double getRateForBranch(Node node) {
 
-        // Root has average rate
+        // Root and sampled ancestors have average rate
         double baseRate = meanRateInput.get().getArrayValue();
-        if (node.getLength() <= 0 || node.isDirectAncestor() || node.isRoot()) return baseRate;
+        if (node.isRoot() || node.isDirectAncestor()) return baseRate;
 
 
         double relaxedBranchRate = getRelaxedBranchRate(node);
