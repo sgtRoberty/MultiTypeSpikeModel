@@ -1,0 +1,189 @@
+<beast version="2.0" namespace="beast.base.inference.parameter:beast.base.inference:remaster:feast.simulation">
+
+    <map name="Beta">beast.base.inference.distribution.Beta</map>
+    <map name="Exponential">beast.base.inference.distribution.Exponential</map>
+    <map name="InverseGamma">beast.base.inference.distribution.InverseGamma</map>
+    <map name="LogNormal">beast.base.inference.distribution.LogNormalDistributionModel</map>
+    <map name="Gamma">beast.base.inference.distribution.Gamma</map>
+    <map name="Uniform">beast.base.inference.distribution.Uniform</map>
+    <map name="prior">beast.base.inference.distribution.Prior</map>
+    <map name="LaplaceDistribution">beast.base.inference.distribution.LaplaceDistribution</map>
+    <map name="OneOnX">beast.base.inference.distribution.OneOnX</map>
+    <map name="Normal">beast.base.inference.distribution.Normal</map>
+    <map name="taxon">beast.base.evolution.alignment.Taxon</map>
+    <map name="taxonset">beast.base.evolution.alignment.TaxonSet</map>
+    <map name="Dirichlet" >beast.base.inference.distribution.Dirichlet</map>
+
+
+
+    <parameter id="lambda" spec="parameter.RealParameter" name="stateNode" lower="0">2</parameter>
+    <parameter id="divRate" spec="parameter.RealParameter" name="stateNode" lower="0">3</parameter>
+    <parameter id="rho" spec="parameter.RealParameter" name="stateNode" lower="0" upper="1">1.0</parameter>
+    <parameter id="samplingProportion" spec="parameter.RealParameter" name="stateNode" lower="0" upper="1">0.2</parameter>
+    <parameter id="kappa" spec="parameter.RealParameter" name="stateNode" lower="0">1</parameter>
+    <parameter id="siteShape" spec="parameter.RealParameter" name="stateNode" lower="0.01">1</parameter>
+    <parameter id="clockMean" spec="parameter.RealParameter" name="stateNode" lower="0">1</parameter>
+    <parameter id="clockSD" spec="parameter.RealParameter" name="stateNode" lower="0">1</parameter>
+    <parameter id="spikeShape" spec="parameter.RealParameter" name="stateNode" lower="0.2" upper="10">1.0</parameter>
+    <parameter id="spikeMean" spec="parameter.RealParameter" name="stateNode" lower="0">0.01</parameter>
+    <parameter id="origin" spec="parameter.RealParameter" name="stateNode" lower="0">1</parameter>
+
+    <!-- <run spec="Simulator" nSims="$(nSims)"> -->
+    <run spec="Simulator" nSims="50">
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@divRate">
+            <!-- <Beta name="distr" alpha="10" beta="2" offset="2"/> -->
+            <!-- <LogNormal  name="distr" meanInRealSpace="true" M="1.0" S="0.4" offset="1"/> -->
+            <Uniform name="distr" lower="3" upper="4"/>
+        </simulate>
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@lambda">
+            <LogNormal  name="distr" meanInRealSpace="true" M="2" S="0.4" offset="4"/>
+            <!-- <Uniform name="distr" lower="1" upper="6"/> -->
+        </simulate>
+
+        <!-- <simulate spec="feast.parameter.RandomRealParameter" initial="@r0">
+            <Exponential  name="distr" mean="2" offset="1"/>
+            <Uniform name="distr" lower="1" upper="3"/>
+        </simulate> -->
+
+        <!-- <simulate id="turnover" spec="feast.parameter.RandomRealParameter" value="0.2" lower="0">
+            <Beta name="distr" alpha="2" beta="5"/>
+        </simulate> -->
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@samplingProportion">
+            <Beta name="distr" alpha="2" beta="10"/>
+        </simulate>
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@rho">
+            <Beta name="distr" alpha="10" beta="2"/>
+            <!-- <Uniform name="distr" lower="0.7" upper="1.0"/> -->
+        </simulate>
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@kappa">
+            <Exponential name="distr" mean="5"/>
+        </simulate>
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@siteShape">
+            <Exponential name="distr" mean="1"/>
+        </simulate>
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@clockSD">
+            <Gamma name="distr" alpha="5" beta="0.05"/>
+        </simulate>
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@spikeShape">
+            <LogNormal  name="distr" meanInRealSpace="true" M="2" S="0.5"/>
+        </simulate>
+
+        <simulate spec="feast.parameter.RandomRealParameter" initial="@spikeMean">
+            <LogNormal  name="distr" meanInRealSpace="true" M="0.01" S="0.8"/>
+        </simulate>
+
+
+        <simulate spec="SimulatedTree" id="tree">
+            <trajectory spec="StochasticTrajectory" id="traj" maxRetries="1" maxTime="@origin"
+                        mustHave="rhoSamples &gt;1  &amp;&amp; psiSamples &gt;1 &amp;&amp; psiSamples + rhoSamples &lt;201">
+
+                <population spec="RealParameter" id="X" value="1"/>
+                <samplePopulation spec="RealParameter" id="psiSamples" value="0"/>
+                <samplePopulation spec="RealParameter" id="rhoSamples" value="0"/>
+                <!-- <samplePopulation spec="RealParameter" id="removed" value="0"/> -->
+
+                <reaction id="lambdaReaction" spec="Reaction" rate="@lambda"> X -> 2X </reaction>
+                <!-- <reaction id="muReaction" spec="Reaction" rate="@mu"> X -> 0 </reaction> -->
+                <reaction id="muReaction" spec="Reaction"> X -> 0
+                    <!-- <rate id="mu" spec="feast.expressions.ExpCalculator"
+                        value="lambda/r0">
+                        <arg idref="r0"/>
+                        <arg idref="lambda"/>
+                    </rate> -->
+                    <rate id="mu" spec="feast.expressions.ExpCalculator"
+                        value="lambda - divRate">
+                        <arg idref="divRate"/>
+                        <arg idref="lambda"/>
+                    </rate>
+                </reaction>
+                <!-- sampling through time without removal -->
+                <!-- <reaction id="psiReaction" spec="Reaction" rate="@psi"> X -> X + psiSamples </reaction> -->
+                <reaction id="psiReaction" spec="Reaction"> X -> X + psiSamples
+                    <rate id="psi" spec="feast.expressions.ExpCalculator"
+                        value="(samplingProportion * mu)/(1 - samplingProportion)">
+                        <arg idref="samplingProportion"/>
+                        <arg idref="mu"/>
+                    </rate>
+                </reaction>
+                <reaction id="rhoReaction" spec="PunctualReaction" p="@rho" times="@origin"> X -> rhoSamples
+                    <!-- <times id="origin" spec="feast.expressions.ExpCalculator"
+                        value="log(30)/(lambda-mu)">
+                        <arg idref="lambda"/>
+                        <arg idref="mu"/>
+                    </times> -->
+                </reaction>
+            </trajectory>
+        </simulate>
+
+<!--        <logger spec="Logger" mode="tree" fileName="truth/tree_$(index).trees">-->
+<!--        <logger spec="Logger" mode="tree" fileName="truth_typed.trees"> -->
+<!--            <log spec="TypedTreeLogger" tree="@tree"/>-->
+<!--        </logger>-->
+
+        <logger spec="Logger" mode="tree" fileName="truth.trees">
+            <log idref="tree"/>
+        </logger>
+
+<!--        <logger fileName="output.full.trees" mode="tree">-->
+<!--            <log spec="TypedTreeLogger">-->
+<!--                <tree spec="PrunedTree" samplePops="removed,psiSamples,rhoSamples" simulatedTree="@tree"/>-->
+<!--            </log>-->
+<!--        </logger>-->
+
+<!--        <logger fileName="output.reconstructed.trees" mode="tree">-->
+<!--            <log spec="TypedTreeLogger">-->
+<!--                <tree spec="PrunedTree" samplePops="psiSamples,rhoSamples" simulatedTree="@tree"/>-->
+<!--            </log>-->
+<!--        </logger>-->
+
+
+        <logger spec="Logger">
+            <log id="taxonCount" spec="multitypespike.logger.TaxonCountLogger" tree="@tree"/>
+            <log id="branchCount" spec="multitypespike.logger.BranchCountLogger" tree="@tree"/>
+            <log idref="treeStat"/>
+            <log idref="divRate"/>
+            <log idref="lambda"/>
+            <log idref="mu"/>
+            <log idref="psi"/>
+            <log idref="rho"/>
+            <!-- <log idref="kappa"/>
+            <log idref="siteShape"/>
+            <log idref="clockSD"/>
+            <log idref="spikeShape"/>
+            <log idref="spikeMean"/> -->
+            <log idref="samplingProportion"/>
+        </logger>
+
+        <!-- <logger spec="Logger" logEvery="1" fileName="truth/truth_$(index).log"> -->
+        <logger spec="Logger" logEvery="1" fileName="truth_param.log">
+            <log id="treeStat" spec="beast.base.evolution.tree.TreeStatLogger" tree="@tree"/>
+            <log idref="divRate"/>
+            <log idref="lambda"/>
+            <log idref="samplingProportion"/>
+            <log idref="mu"/>
+            <log idref="psi"/>
+            <log idref="kappa"/>
+            <log idref="rho"/>
+            <log idref="siteShape"/>
+            <log idref="clockMean"/>
+            <log idref="clockSD"/>
+            <log idref="spikeShape"/>
+            <log idref="spikeMean"/>
+            <log id="SACount" spec="beast.evolution.tree.SampledAncestorLogger" tree="@tree"/>
+            <log idref="origin"/>
+            <log idref="taxonCount"/>
+            <log idref="branchCount"/>
+        </logger>
+
+    </run>
+
+
+</beast>

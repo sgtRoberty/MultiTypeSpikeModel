@@ -9,6 +9,8 @@
         <provider classname="multitypespike.logger.SpikeLogger"/>
         <provider classname="multitypespike.logger.ExpectedHiddenEventsLogger"/>
         <provider classname="multitypespike.logger.SaltativeProportionLogger"/>
+        <provider classname="multitypespike.logger.TaxonCountLogger"/>
+        <provider classname="multitypespike.logger.BranchCountLogger"/>
         <provider classname="multitypespike.operator.SpikeFlipOperator"/>
 
     </service>
