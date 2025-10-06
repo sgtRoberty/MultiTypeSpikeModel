@@ -11,15 +11,15 @@ import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 
 public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquations {
 
-    public double[] expNrHiddenEvents;
+    private double[] expNrHiddenEvents;
 
-    public double[][] b;
-    public double[][][] b_ij;
+    private double[][] b;
+    private final double[][][] b_ij;
     protected int interval;
 
     private final int nTypes;
     private final int nodeNr;
-    public double[] intervalEndTimes;
+    private final double[] intervalEndTimes;
 
     private final ContinuousOutputModel[] p0geComArray;
     private final ContinuousOutputModel piCom;
@@ -46,6 +46,10 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
                 absoluteTolerance, relativeTolerance);
     }
 
+    public double[] getExpectedHiddenEvents() {
+        return this.expNrHiddenEvents;
+    }
+
     @Override
     public int getDimension() {
         return this.nTypes;
@@ -55,10 +59,9 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
         return p0geComArray[nodeNr];
     }
 
-
     public void setInterval(int interval) {this.interval = interval;}
 
-    public double[] getP0(int nodeNr, double time) {
+    public double[] getP0Values(int nodeNr, double time) {
         ContinuousOutputModel p0geCom = getP0GeModel(nodeNr);
         p0geCom.setInterpolatedTime(time);
         double[] p0ge = p0geCom.getInterpolatedState();
@@ -66,7 +69,7 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
         return p0ge;
     }
 
-    public double[] getPi(double time) {
+    public double[] getPiValues(double time) {
         piCom.setInterpolatedTime(time);
         double[] p0ge = piCom.getInterpolatedState();
 
@@ -76,8 +79,8 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
 
     @Override
     public void computeDerivatives(double t, double[] y, double[] yDot) {
-        double[] piValues = getPi(t);
-        double[] p0Values = getP0(nodeNr, t);
+        double[] piValues = getPiValues(t);
+        double[] p0Values = getP0Values(nodeNr, t);
 
         for (int i = 0; i < nTypes; i++) {
             double sum = 2 * b[interval][i] * p0Values[i];

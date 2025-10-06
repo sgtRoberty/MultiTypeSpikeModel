@@ -2,6 +2,7 @@ package multitypespike.distribution;
 
 import bdmmprime.parameterization.Parameterization;
 import bdmmprime.util.Utils;
+import beast.base.core.Loggable;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
@@ -9,19 +10,19 @@ import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 
-public class PiSystem implements FirstOrderDifferentialEquations {
+import java.io.PrintStream;
+
+public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
 
     private final ContinuousOutputModel[] p0geComArray;
 
-    public double[][] b;
-    public double[][][] M, b_ij;
-
-    public double totalProcessLength;
+    private final double[][] b;
+    private final double[][][] M, b_ij;
 
     public int nTypes, nIntervals;
     private int currentNodeNr;
     public double[] intervalEndTimes;
-    private Tree tree;
+    private final Tree tree;
     protected int interval;
 
     protected FirstOrderIntegrator piIntegrator;
@@ -37,8 +38,6 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         this.b = parameterization.getBirthRates();
         this.M = parameterization.getMigRates();
         this.b_ij = parameterization.getCrossBirthRates();
-
-        this.totalProcessLength = parameterization.getTotalProcessLength();
 
         this.nTypes = parameterization.getNTypes();
         this.nIntervals = parameterization.getTotalIntervalCount();
@@ -97,8 +96,8 @@ public class PiSystem implements FirstOrderDifferentialEquations {
             for (int j = 0; j < nTypes; j++) {
                 if (j == i) continue;
 
-                yDot[i] += ((b_ij[interval][j][i] * p0ge[j] + M[interval][j][i]) * (p0ge[nTypes + i] / p0ge[nTypes + j])) * y[j];
-                yDot[i] -= ((b_ij[interval][i][j] * p0ge[i] + M[interval][i][j]) * (p0ge[nTypes + j] / p0ge[nTypes + i])) * y[i];
+                yDot[i] += ((b_ij[interval][j][i] * p0ge[j] + M[interval][j][i]) * (p0ge[nTypes + i] / Math.max(p0ge[nTypes + j], 1e-12))) * y[j];
+                yDot[i] -= ((b_ij[interval][i][j] * p0ge[i] + M[interval][i][j]) * (p0ge[nTypes + j] / Math.max(p0ge[nTypes + i], 1e-12))) * y[i];
             }
         }
     }
@@ -161,8 +160,6 @@ public class PiSystem implements FirstOrderDifferentialEquations {
 
         // Store integration results for each edge
         integrationResults[node.getNr()] = com;
-//        set
-//        state.setIntegrationResults(integrationResults);
     }
 
 
@@ -185,15 +182,6 @@ public class PiSystem implements FirstOrderDifferentialEquations {
             System.arraycopy(state.pi, 0, childState.pi, 0, nTypes);
             integratePiAtNode(child, nodeTime, childState, parameterization, finalSampleOffset);
         }
-
-//        if (node.isLeaf()) {
-//            int observedType = ((Number) node.getMetaData("state")).intValue();
-//            System.out.println(" = " + observedType);
-//            for (int i = 0; i < nTypes; i++) {
-//                state.pi[i] = (i == observedType) ? 1.0 : 0.0;
-//            }
-//            return; // No need to recurse further
-//        }
     }
 
 
@@ -213,16 +201,18 @@ public class PiSystem implements FirstOrderDifferentialEquations {
                 state, parameterization, finalSampleOffset);
     }
 
+    @Override
+    public void init(PrintStream out) {
 
-//    public static PiState computePiState(Parameterization parameterization, Tree tree,
-//                                         ContinuousOutputModel[] p0geComArray,
-//                                         double[] startTypePriorProbs, double finalSampleOffset,
-//                                         double absTol, double relTol) {
-//
-//        PiState piState = new PiState(parameterization.getNTypes());
-//        PiSystem piSystem = new PiSystem(parameterization, tree, p0geComArray, absTol, relTol);
-//        piSystem.integratePi(tree, piState, startTypePriorProbs, parameterization, finalSampleOffset);
-//        return piState;
-//    }
+    }
 
+    @Override
+    public void log(long sample, PrintStream out) {
+
+    }
+
+    @Override
+    public void close(PrintStream out) {
+
+    }
 }
