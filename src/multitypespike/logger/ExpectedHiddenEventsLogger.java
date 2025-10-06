@@ -29,12 +29,12 @@ public class ExpectedHiddenEventsLogger extends CalculationNode implements Funct
 
     @Override
     public int getDimension() {
-        return branchSpikePriorInput.get().expectedHiddenEvents.getDimension();
+        return branchSpikePriorInput.get().nTypes * branchSpikePriorInput.get().nodeCount;
     }
 
     @Override
     public double getArrayValue(int dim) {
-        return branchSpikePriorInput.get().expectedHiddenEvents.getValue(dim);
+        return branchSpikePriorInput.get().getExpectedHiddenEvents(dim);
     }
 
     @Override
