@@ -2,6 +2,7 @@ package multitypespike.distribution;
 
 import bdmmprime.parameterization.Parameterization;
 import bdmmprime.util.Utils;
+import beast.base.core.Loggable;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
 import org.apache.commons.math3.ode.ContinuousOutputModel;
@@ -9,19 +10,19 @@ import org.apache.commons.math3.ode.FirstOrderDifferentialEquations;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 
-public class PiSystem implements FirstOrderDifferentialEquations {
+import java.io.PrintStream;
+
+public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
 
     private final ContinuousOutputModel[] p0geComArray;
 
-    public double[][] b;
-    public double[][][] M, b_ij;
-
-    public double totalProcessLength;
+    private final double[][] b;
+    private final double[][][] M, b_ij;
 
     public int nTypes, nIntervals;
     private int currentNodeNr;
     public double[] intervalEndTimes;
-
+    private final Tree tree;
     protected int interval;
 
     protected FirstOrderIntegrator piIntegrator;
@@ -32,12 +33,11 @@ public class PiSystem implements FirstOrderDifferentialEquations {
 
     public PiSystem(Parameterization parameterization, Tree tree, ContinuousOutputModel[] p0geComArray, double absoluteTolerance, double relativeTolerance) {
 
+        this.tree = tree;
         this.p0geComArray = p0geComArray;
         this.b = parameterization.getBirthRates();
         this.M = parameterization.getMigRates();
         this.b_ij = parameterization.getCrossBirthRates();
-
-        this.totalProcessLength = parameterization.getTotalProcessLength();
 
         this.nTypes = parameterization.getNTypes();
         this.nIntervals = parameterization.getTotalIntervalCount();
@@ -52,6 +52,7 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         this.piIntegrator = new DormandPrince54Integrator(
                 integrationMinStep, integrationMaxStep,
                 absoluteTolerance, relativeTolerance);
+
     }
 
 
@@ -65,14 +66,14 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         this.currentNodeNr = nodeNr;
     }
 
-    private ContinuousOutputModel getP0GeModel(int nodeNr) {
+    private ContinuousOutputModel getP0GeIntegrationResults(int nodeNr) {
         return p0geComArray[nodeNr];
     }
 
     public double[] getP0Ge(int nodeNr, double time) {
         //  p0:  (0 .. dim-1)
         //  ge: (dim .. 2*dim-1)
-        ContinuousOutputModel p0geCom = getP0GeModel(nodeNr);
+        ContinuousOutputModel p0geCom = getP0GeIntegrationResults(nodeNr);
         p0geCom.setInterpolatedTime(time);
         double[] p0ge = p0geCom.getInterpolatedState();
 
@@ -90,23 +91,21 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         double[] p0ge = getP0Ge(currentNodeNr, t);
 
         for (int i = 0; i< nTypes; i++) {
-
-            yDot[i] = 2 * y[i] * (b[interval][i] * p0ge[i] + M[interval][i][i]);
+            yDot[i] = 0;
 
             for (int j = 0; j < nTypes; j++) {
                 if (j == i) continue;
 
-                yDot[i] += ((b_ij[interval][i][j] * p0ge[i] + M[interval][i][j]) * (p0ge[nTypes + j] / p0ge[nTypes + i])) * y[i];
-                yDot[i] -= ((b_ij[interval][j][i] * p0ge[j] + M[interval][j][i]) * (p0ge[nTypes + i] / p0ge[nTypes + j])) * y[j];
-
+                yDot[i] += ((b_ij[interval][j][i] * p0ge[j] + M[interval][j][i]) * (p0ge[nTypes + i] / Math.max(p0ge[nTypes + j], 1e-12))) * y[j];
+                yDot[i] -= ((b_ij[interval][i][j] * p0ge[i] + M[interval][i][j]) * (p0ge[nTypes + j] / Math.max(p0ge[nTypes + i], 1e-12))) * y[i];
             }
         }
     }
 
 
-    public void setInitialConditionsForPi(PiState state, double[] startTypePriorProbs) {
+    public void setInitialConditionsForPi(PiState state, double[] startTypePriorProbs, double rootTime) {
         double total = 0.0;
-        double[] p0geInit = getP0Ge(currentNodeNr,0);
+        double[] p0geInit = getP0Ge(currentNodeNr, rootTime);
 
         for (int type = 0; type < nTypes; type++) {
             state.pi[type] = p0geInit[type + nTypes] * startTypePriorProbs[type];
@@ -119,10 +118,13 @@ public class PiSystem implements FirstOrderDifferentialEquations {
     }
 
 
+    public ContinuousOutputModel getIntegrationResultsForNode(int nodeNr) {
+        return integrationResults[nodeNr];
+    }
+
     public void integrate(PiState state, double tStart, double tEnd) {
         piIntegrator.integrate(this, tStart, state.pi, tEnd, state.pi);
     }
-
 
     public void integratePiAlongEdge(Node node, double tStart, PiState state,
                                   Parameterization parameterization, double finalSampleOffset) {
@@ -138,39 +140,37 @@ public class PiSystem implements FirstOrderDifferentialEquations {
         int thisInterval = parameterization.getIntervalIndex(thisTime);
         int endInterval = parameterization.getNodeIntervalIndex(node, finalSampleOffset);
 
-        while (thisInterval > endInterval) {
+        while (thisInterval < endInterval) {
+            // Forward integration across intervals
+            double nextTime = intervalEndTimes[thisInterval];
 
-            double nextTime = intervalEndTimes[thisInterval-1];
-
-            if (Utils.lessThanWithPrecision(nextTime , thisTime)) {
+            if (Utils.lessThanWithPrecision(thisTime, nextTime)) {
                 setInterval(thisInterval);
                 integrate(state, thisTime, nextTime);
             }
 
             thisTime = nextTime;
-            thisInterval -= 1;
-
+            thisInterval += 1;
         }
 
-        if (Utils.greaterThanWithPrecision(thisTime, tEnd)) {
+        if (Utils.lessThanWithPrecision(thisTime, tEnd)) {
             setInterval(thisInterval);
             integrate(state, thisTime, tEnd);
         }
 
         // Store integration results for each edge
         integrationResults[node.getNr()] = com;
-        state.setIntegrationResults(integrationResults);
     }
 
 
     public void integratePiAtNode(Node node, double parentTime, PiState state,
                                   Parameterization parameterization, double finalSampleOffset) {
 
-        // Get the time of this node (child of parent node)
+        // Get the time of this node
         double nodeTime = parameterization.getNodeTime(node, finalSampleOffset);
 
         // Skip integration on origin and sampled ancestor edges
-        if (!(node.isRoot() || node.isDirectAncestor())) {
+        if (!node.isRoot()) {
             // Determine intervals and integrate from parent to this node
             integratePiAlongEdge(node, parentTime, state, parameterization, finalSampleOffset);
         }
@@ -180,24 +180,39 @@ public class PiSystem implements FirstOrderDifferentialEquations {
             PiState childState = new PiState(nTypes);
             // Copy current state as starting condition for child
             System.arraycopy(state.pi, 0, childState.pi, 0, nTypes);
-
             integratePiAtNode(child, nodeTime, childState, parameterization, finalSampleOffset);
         }
     }
 
 
-    public void integratePi(Tree tree, PiState state, double[] startTypePriorProbs,
+    public void integratePi(double[] startTypePriorProbs,
                             Parameterization parameterization, double finalSampleOffset) {
 
-        Node root = tree.getRoot();
+        Node root = this.tree.getRoot();
         setCurrentNodeNr(root.getNr());
+        double rootTime = parameterization.getNodeTime(root, finalSampleOffset);
+        PiState state = new PiState(parameterization.getNTypes());
 
         // Set initial conditions at root
-        setInitialConditionsForPi(state, startTypePriorProbs);
+        setInitialConditionsForPi(state, startTypePriorProbs, rootTime);
 
-        // Start recursive integration from root
-        integratePiAtNode(root, 0, state,
-                parameterization, finalSampleOffset);
+        // Start pre-order traversal integration from root
+        integratePiAtNode(root, rootTime,
+                state, parameterization, finalSampleOffset);
     }
 
+    @Override
+    public void init(PrintStream out) {
+
+    }
+
+    @Override
+    public void log(long sample, PrintStream out) {
+
+    }
+
+    @Override
+    public void close(PrintStream out) {
+
+    }
 }
