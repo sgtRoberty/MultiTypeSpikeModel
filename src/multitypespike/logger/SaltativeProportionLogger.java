@@ -25,7 +25,6 @@ public class SaltativeProportionLogger extends BEASTObject implements Loggable {
     @Override
     public void init(PrintStream out) {
         out.print(this.clockInput.get().getID() + ".ProportionOfSaltation\t");
-
     }
 
     @Override

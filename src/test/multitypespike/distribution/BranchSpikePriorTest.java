@@ -1,5 +1,6 @@
 package test.multitypespike.distribution;
 
+import bdmmprime.distribution.BirthDeathMigrationDistribution;
 import bdmmprime.parameterization.*;
 import beast.base.evolution.alignment.Alignment;
 import beast.base.evolution.alignment.Sequence;
@@ -7,6 +8,8 @@ import beast.base.evolution.tree.*;
 import beast.base.evolution.tree.coalescent.ConstantPopulation;
 import beast.base.evolution.tree.coalescent.RandomTree;
 import beast.base.inference.parameter.RealParameter;
+import gammaspike.distribution.StumpedTreePrior;
+import gammaspike.tree.Stubs;
 import multitypespike.distribution.BranchSpikePrior;
 import org.junit.Test;
 
@@ -17,6 +20,124 @@ import static junit.framework.Assert.assertEquals;
 
 public class BranchSpikePriorTest {
 
+    public static void main(String[] args) {
+
+        String newick = "(t1:1.0, t2:1.0);";
+        Tree tree = new TreeParser(newick, false,false,true,0);
+        RealParameter origin = new RealParameter("2.5");
+
+        Parameterization parameterization = new CanonicalParameterization();
+        parameterization.initByName(
+                "processLength", origin,
+                "birthRate", new SkylineVectorParameter(
+                        null,
+                        new RealParameter("3.0"), 1),
+                "deathRate", new SkylineVectorParameter(
+                        null,
+                        new RealParameter("0.5"), 1),
+                "samplingRate", new SkylineVectorParameter(
+                        null,
+                        new RealParameter("0.0"), 1),
+                "removalProb", new SkylineVectorParameter(
+                        null,
+                        new RealParameter("0.0"), 1),
+                "rhoSampling", new TimedParameter(
+                        origin,
+                        new RealParameter("0.2"))
+        );
+
+        BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
+
+        density.initByName(
+                "parameterization", parameterization,
+                "conditionOnSurvival", false,
+                "tree", tree,
+                "typeLabel", "state",
+                "parallelize", false,
+                "useAnalyticalSingleTypeSolution", false,
+                "storeIntegrationResults", true);
+
+        // nodeNr 0 = t1
+        // nodeNr 1 = t2
+        // nodeNr 2 = root
+
+        int nodeNr = 0;
+        Node node = tree.getNode(nodeNr);
+
+        BranchSpikePrior bsp = new BranchSpikePrior();
+        bsp.initByName("parameterization", parameterization,
+                "tree", tree,
+                "spikeShape", "1.0",
+                "spikes", "1.0 0.5 0.1 0.2 0.7 0.1",
+                "bdmDistr", density);
+
+        System.out.println("single-type method = " + bsp.getExpNrHiddenEventsForBranch(node));
+                                    
+        Stubs stub = new Stubs();
+        gammaspike.distribution.BranchSpikePrior gamma_bsp = new gammaspike.distribution.BranchSpikePrior();
+        StumpedTreePrior stp = new StumpedTreePrior();
+        stp.initByName("lambda", "3",
+                "samplingProportion", "0.5",
+                "turnover", "0.16666666666667",
+                "tree", tree);
+        stub.initByName("tree", tree, "prior", stp);
+        gamma_bsp.initByName("spikes", "1.0 0.5 0.1 0.2 0.7 0.1", "shape", "1.0", "stubs", stub, "tree", tree);
+//        System.out.println(node.getHeight());
+//        System.out.println(node.getParent().getHeight());
+//        System.out.println("GS Model = " + stp.getMeanStubNumber(node.getHeight(), node.getParent().getHeight()));
+    }
+
+    /**
+     * Single-type test for expected number of hidden events on a branch with no rate shifts
+     * Compares with simulations of birth-death trajectories performed in R
+     */
+    @Test
+    public void testSingleTypeExpectedHiddenEvents() {
+        String newick = "(t1:1.0, t2:1.0);";
+        Tree tree = new TreeParser(newick, false, false, true, 0);
+        RealParameter origin = new RealParameter("2.5");
+
+        Parameterization parameterization = new CanonicalParameterization();
+        parameterization.initByName(
+                "processLength", origin,
+                "birthRate", new SkylineVectorParameter(null, new RealParameter("3.0"), 1),
+                "deathRate", new SkylineVectorParameter(null, new RealParameter("0.5"), 1),
+                "samplingRate", new SkylineVectorParameter(null, new RealParameter("0.0"), 1),
+                "removalProb", new SkylineVectorParameter(null, new RealParameter("0.0"), 1),
+                "rhoSampling", new TimedParameter(origin, new RealParameter("0.2"))
+        );
+
+        BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
+        density.initByName(
+                "parameterization", parameterization,
+                "conditionOnSurvival", false,
+                "tree", tree,
+                "typeLabel", "state",
+                "parallelize", false,
+                "useAnalyticalSingleTypeSolution", false,
+                "storeIntegrationResults", true
+        );
+
+        BranchSpikePrior bsp = new BranchSpikePrior();
+        bsp.initByName(
+                "parameterization", parameterization,
+                "tree", tree,
+                "spikeShape", "1.0",
+                "spikes", "1.0 0.5 0.1 0.2 0.7 0.1",
+                "bdmDistr", density
+        );
+
+        // Get expected hidden events for node 0 (t1)
+        Node node = tree.getNode(0);
+        double expectedHiddenEvents = bsp.getExpNrHiddenEventsForBranch(node);
+
+        // Compare to R simulation result (hiddenEventsSim.R)
+        double expectedFromSimulation = 3.39054;
+        double tolerance = 5e-3;
+
+        assertEquals("Expected hidden events should match simulation", expectedFromSimulation, expectedHiddenEvents, tolerance);
+    }
+
     /**
      * Single-type test for expected number of hidden events on a branch with no rate shifts
      * Compares with the output of GammaSpike Model - 01/03/2025
@@ -26,7 +147,7 @@ public class BranchSpikePriorTest {
 
         String newick = "((0:1.0,1:1.0)4:1.0,(2:1.0,3:1.0)5:0.5)6:0.0;";
         TreeParser treeParser = new TreeParser(newick, false, false, false, 0);
-        Tree myTree = treeParser;
+        Tree tree = treeParser;
 
         RealParameter originParam = new RealParameter("2.0");
         Parameterization parameterization = new CanonicalParameterization();
@@ -50,16 +171,16 @@ public class BranchSpikePriorTest {
                         new RealParameter("1.0"))
         );
         BranchSpikePrior bsp = new BranchSpikePrior();
-        bsp.initByName("parameterization", parameterization, "tree", myTree, "spikeShape", "1.0", "spikes", "1.0 0.5 0.1 0.2 0.7 0.1");
-        Node node = myTree.getNode(5);
+        bsp.initByName("parameterization", parameterization, "tree", tree, "spikeShape", "1.0", "spikes", "1.0 0.5 0.1 0.2 0.7 0.1");
+        Node node = tree.getNode(5);
 
         /*
         Stubs stub = new Stubs();
         gammaspike.distribution.BranchSpikePrior gamma_bsp = new gammaspike.distribution.BranchSpikePrior();
         StumpedTreePrior stp = new StumpedTreePrior();
-        stp.initByName("lambda", "0.75", "r0", "2.5", "samplingProportion", "0.25", "tree", myTree);
-        stub.initByName("tree", myTree, "prior", stp);
-        gamma_bsp.initByName("spikes", "1.0 0.5 0.1 0.2 0.7 0.1", "shape", "1.0", "stubs", stub, "tree", myTree);
+        stp.initByName("lambda", "0.75", "r0", "2.5", "samplingProportion", "0.25", "tree", tree);
+        stub.initByName("tree", tree, "prior", stp);
+        gamma_bsp.initByName("spikes", "1.0 0.5 0.1 0.2 0.7 0.1", "shape", "1.0", "stubs", stub, "tree", tree);
 
         stp.getMeanStubNumber(node.getHeight(), node.getParent().getHeight())  = 0.186082405828208.
         gamma_bsp.calculateLogP() = -3.4385926164063445.
@@ -158,7 +279,7 @@ public class BranchSpikePriorTest {
 //
 //        String newick = "((0:1.0,1:1.0)4:1.0,(2:1.0,3:1.0)5:0.5)6:0.0;";
 //        TreeParser treeParser = new TreeParser(newick, false, false, false, 0);
-//        Tree myTree = treeParser;
+//        Tree tree = treeParser;
 //
 //        RealParameter originParam = new RealParameter("2.0");
 //
@@ -183,9 +304,9 @@ public class BranchSpikePriorTest {
 //                        new RealParameter("1.0"))
 //        );
 //
-//        Node node = myTree.getNode(5);
+//        Node node = tree.getNode(5);
 //        BranchSpikePrior bsp = new BranchSpikePrior();
-//        bsp.initByName("parameterization", parameterization, "tree", myTree, "spikeShape", "1.0", "spikes", "1.0 0.5 0.1 0.2 0.7 0.1");
+//        bsp.initByName("parameterization", parameterization, "tree", tree, "spikeShape", "1.0", "spikes", "1.0 0.5 0.1 0.2 0.7 0.1");
 //        System.out.println(bsp.getExpNrHiddenEventsForBranch(node));
 //        System.out.println(bsp.calculateLogP());
 
@@ -200,9 +321,9 @@ public class BranchSpikePriorTest {
 //        Stubs stub = new Stubs();
 //        gammaspike.distribution.BranchSpikePrior gamma_bsp = new gammaspike.distribution.BranchSpikePrior();
 //        StumpedTreePrior stp = new StumpedTreePrior();
-//        stp.initByName("lambda", "0.75", "r0", "2.5", "samplingProportion", "0.25", "tree", myTree);
-//        stub.initByName("tree", myTree, "prior", stp);
-//        gamma_bsp.initByName("spikes", "1.0 0.5 0.1 0.2 0.7 0.1", "shape", "1.0", "stubs", stub, "tree", myTree);
+//        stp.initByName("lambda", "0.75", "r0", "2.5", "samplingProportion", "0.25", "tree", tree);
+//        stub.initByName("tree", tree, "prior", stp);
+//        gamma_bsp.initByName("spikes", "1.0 0.5 0.1 0.2 0.7 0.1", "shape", "1.0", "stubs", stub, "tree", tree);
 //        System.out.println(stp.getMeanStubNumber(node.getHeight(), node.getParent().getHeight()));
 //        System.out.println(gamma_bsp.calculateLogP());
 

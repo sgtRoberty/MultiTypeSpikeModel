@@ -15,8 +15,22 @@ public class ExpectedHiddenEventsLogger extends CalculationNode implements Funct
     final public Input<BranchSpikePrior> branchSpikePriorInput =
             new Input<>("branchSpikePrior", "Branch spike prior input", Validate.REQUIRED);
 
+    final public Input<Boolean> logPerTypeInput = new Input<>(
+            "logPerType",
+            "If true, log expected hidden events for each type separately for multi-type models; " +
+                    "if false, log totals per node (sum across types).",
+            false  // default: sum across types
+    );
+
+    private boolean logPerType;
+    private int nTypes, nodeCount;
+
     @Override
     public void initAndValidate() {
+        logPerType = logPerTypeInput.get();
+        nTypes = branchSpikePriorInput.get().nTypes;
+        nodeCount = branchSpikePriorInput.get().nodeCount;
+        if (nTypes == 1 && logPerType) throw new RuntimeException("logPerType cannot be true for single-type models.");
     }
 
     @Override
@@ -29,26 +43,44 @@ public class ExpectedHiddenEventsLogger extends CalculationNode implements Funct
 
     @Override
     public int getDimension() {
-        return branchSpikePriorInput.get().nTypes * branchSpikePriorInput.get().nodeCount;
+        if(nTypes == 1 || logPerType) return nTypes * nodeCount;
+        else return nodeCount;
     }
 
     @Override
     public double getArrayValue(int dim) {
-        return branchSpikePriorInput.get().getExpectedHiddenEvents(dim);
+        if(nTypes == 1 || logPerType) {
+            return branchSpikePriorInput.get().getExpectedHiddenEvents(dim);
+        } else {
+            // Sum across all types for each node
+            double sum = 0.0;
+            for (int t = 0; t < nTypes; t++) {
+                sum += branchSpikePriorInput.get().getExpectedHiddenEvents(dim, t);
+            }
+            return sum;
+        }
     }
 
     @Override
     public void init(PrintStream out) {
-        for (int i = 0; i < this.getDimension(); i ++) {
-            String id = this.getID();
-            if (id == null || id.equals("")) id = "expectedHiddenEvents";
-            out.print(id + "." + i + "\t");
+        String id = this.getID();
+        if (id == null || id.isEmpty()) id = "expectedHiddenEvents";
+
+        if (logPerType) {
+            for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
+                for (int t = 0; t < nTypes; t++) {
+                    out.print(id + ".node" + nodeNr + ".type" + t + "\t");
+                }
+            }
+        } else {
+            for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
+                out.print(id + ".node" + nodeNr + "\t");
+            }
         }
     }
 
     @Override
     public void close(PrintStream out) {
-        // nothing to do
     }
 
 }

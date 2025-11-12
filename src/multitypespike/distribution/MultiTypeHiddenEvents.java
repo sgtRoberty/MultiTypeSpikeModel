@@ -9,11 +9,11 @@ import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.nonstiff.DormandPrince54Integrator;
 
 
-public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquations {
+public class MultiTypeHiddenEvents implements FirstOrderDifferentialEquations {
 
     private double[] expNrHiddenEvents;
 
-    private double[][] b;
+    private final double[][] b;
     private final double[][][] b_ij;
     protected int interval;
 
@@ -28,8 +28,8 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
 
     protected FirstOrderIntegrator integrator;
 
-    public MultiTypeHiddenEventsODEs(int nodeNr, Parameterization parameterization, ContinuousOutputModel[] p0geComArray,
-                                     ContinuousOutputModel piCom,  double absoluteTolerance, double relativeTolerance) {
+    public MultiTypeHiddenEvents(int nodeNr, Parameterization parameterization, ContinuousOutputModel[] p0geComArray,
+                                 ContinuousOutputModel piCom, double absoluteTolerance, double relativeTolerance) {
 
         this.nodeNr = nodeNr;
         this.b = parameterization.getBirthRates();
@@ -38,8 +38,9 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
         this.intervalEndTimes = parameterization.getIntervalEndTimes();
         this.p0geComArray = p0geComArray;
         this.piCom = piCom;
-        integrationMinStep = parameterization.getTotalProcessLength() * 1e-100;
-        integrationMaxStep= parameterization.getTotalProcessLength() / 10;
+        integrationMinStep = Math.max(1e-12, parameterization.getTotalProcessLength() * 1e-12);
+        integrationMaxStep = Math.max(integrationMinStep * 10, parameterization.getTotalProcessLength() / 10.0);
+
 
         this.integrator = new DormandPrince54Integrator(
                 integrationMinStep, integrationMaxStep,
@@ -64,16 +65,14 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
     public double[] getP0Values(int nodeNr, double time) {
         ContinuousOutputModel p0geCom = getP0GeModel(nodeNr);
         p0geCom.setInterpolatedTime(time);
-        double[] p0ge = p0geCom.getInterpolatedState();
 
-        return p0ge;
+        return p0geCom.getInterpolatedState();
     }
 
     public double[] getPiValues(double time) {
         piCom.setInterpolatedTime(time);
-        double[] p0ge = piCom.getInterpolatedState();
 
-        return p0ge;
+        return piCom.getInterpolatedState();
     }
 
 
@@ -85,11 +84,18 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
         for (int i = 0; i < nTypes; i++) {
             double sum = 2 * b[interval][i] * p0Values[i];
 
-            for (int j = 0; j < nTypes; j++) {
-                if (j != i) {
-                    sum += b_ij[interval][i][j] * p0Values[j];
-                }
-            }
+//            for (int j = 0; j < nTypes; j++) {
+//                if (i != j) {
+//                  System.out.println("p0_" + i +" = " + p0Values[i]);
+//                  System.out.println("p0_" + j +" = " + p0Values[j]);
+//
+//                  sum += b_ij[interval][i][j] * p0Values[j];
+//
+//                  if (p0Values[j] == 1) sum += b_ij[interval][i][j] * p0Values[j];
+//                  else if (p0Values[i] == 1) sum += b_ij[interval][i][j] * p0Values[i];
+//                  else sum += b_ij[interval][i][j] * (p0Values[i] + p0Values[j]);
+//                }
+//            }
             yDot[i] = piValues[i] * sum;
         }
     }
@@ -123,5 +129,11 @@ public class MultiTypeHiddenEventsODEs implements FirstOrderDifferentialEquation
         }
     }
 
+    // FOR TESTING PURPOSES ONLY
+    public double[] integrateSingleLineage(double[] expNrHiddenEvents, double tStart, double tEnd) {
+        double[] y0 = expNrHiddenEvents.clone();
+        integrator.integrate(this, tStart, y0, tEnd, expNrHiddenEvents);
+        return expNrHiddenEvents;
+    }
 
 }

@@ -2,6 +2,7 @@ package multitypespike.clockmodel;
 
 import beast.base.core.Function;
 import beast.base.core.Input;
+import beast.base.core.Log;
 import beast.base.evolution.branchratemodel.BranchRateModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
@@ -10,7 +11,6 @@ import beast.base.inference.parameter.RealParameter;
 import beast.base.inference.util.InputUtil;
 
 // Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
-
 
 
 public class PunctuatedClockModel extends BranchRateModel.Base {
@@ -22,11 +22,33 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "if false then no spikes are inferred", Input.Validate.OPTIONAL);
     final public Input<Boolean> noSpikeOnDatedTipsInput = new Input<>("noSpikeOnDatedTips", "Set to true if dated tips should have a spike of 0", false);
 
-
+    int nTypes, nodeCount, spikeMeanDim;
 
     @Override
     public void initAndValidate() {
-        ratesInput.get().setDimension(treeInput.get().getNodeCount());
+        Log.warning("WARNING: This model assumes zero cross-birth rates (birth among demes). Non-zero values may lead to unexpected behaviour.");
+
+        if (relaxedInput.get() != null && relaxedInput.get().getValue()) {
+            if (ratesInput.get() == null) {
+                throw new IllegalArgumentException("If 'relaxed' is true, then the rates input must be provided.");
+            }
+        }
+
+        if (ratesInput.get() != null) {
+            ratesInput.get().setDimension(treeInput.get().getNodeCount());
+        }
+        nodeCount = treeInput.get().getNodeCount();
+        nTypes = spikesInput.get().getDimension() / nodeCount;
+
+
+        // Spike mean dimension checks
+        spikeMeanDim = spikeMeanInput.get().getDimension();
+        if (nTypes == 1 && spikeMeanDim > 1) {
+            throw new IllegalArgumentException("Single-type model requires exactly one spikeMean parameter.");
+        }
+        if (nTypes > 1 && spikeMeanDim != 1 && spikeMeanDim != nTypes) {
+            throw new IllegalArgumentException("For multi-type models, 'spikeMean' must have dimension 1 (shared) or nTypes (" + nTypes + ").");
+        }
     }
 
     /**
@@ -38,7 +60,6 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         Node node = treeInput.get().getNode(dim);
         return getSpikeSize(node);
     }
-
 
     /**
      * Get the size of a spike (this will be zero if the node is the root or a sampled ancestor)
@@ -62,10 +83,20 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         if (node.isRoot() || node.isDirectAncestor()) return 0;
 
         // Compute spike size
-        double spikeMean = spikeMeanInput.get().getDoubleValues()[0];
-        return spikesInput.get().getValue(node.getNr()) * spikeMean;
+        double spikeSum = 0;
+        for (int i = 0; i < nTypes; i++) {
+            double spikeMean = getSpikeMean(i);
+            spikeSum += spikesInput.get().getValue(node.getNr() + nodeCount * i) * spikeMean;
+        }
+
+        return spikeSum;
     }
 
+
+    private double getSpikeMean(int type) {
+        if (nTypes == 1 || spikeMeanDim == 1) return spikeMeanInput.get().getArrayValue(0);
+        else return spikeMeanInput.get().getArrayValue(type);
+    }
 
 
     @Override
@@ -82,9 +113,7 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
 
 
         // Effective rate takes into account spike and base rate
-        double effectiveRate = branchDistance / node.getLength();
-
-        return effectiveRate;
+        return branchDistance / node.getLength();
     }
 
 
@@ -125,6 +154,7 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     }
 
 }
+
 
 
 

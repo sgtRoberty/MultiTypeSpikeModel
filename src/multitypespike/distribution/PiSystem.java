@@ -169,7 +169,7 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
         // Get the time of this node
         double nodeTime = parameterization.getNodeTime(node, finalSampleOffset);
 
-        // Skip integration on origin and sampled ancestor edges
+        // Skip integration on origin
         if (!node.isRoot()) {
             // Determine intervals and integrate from parent to this node
             integratePiAlongEdge(node, parentTime, state, parameterization, finalSampleOffset);
@@ -200,6 +200,30 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
         integratePiAtNode(root, rootTime,
                 state, parameterization, finalSampleOffset);
     }
+
+    // FOR TESTING PURPOSES ONLY
+    public void integratePiSingleLineage(double[] startTypePriorProbs,
+                            Parameterization parameterization, double startTime, double endTime) {
+
+        Node root = this.tree.getRoot();
+        if(!root.isLeaf()) System.out.println("Not a single-lineage tree");
+
+        setCurrentNodeNr(root.getNr());
+        PiState state = new PiState(parameterization.getNTypes());
+
+        // Set initial conditions at root
+        setInitialConditionsForPi(state, startTypePriorProbs, startTime);
+
+        ContinuousOutputModel com = new ContinuousOutputModel();
+        piIntegrator.addStepHandler(com);
+
+        // Integrate from root to tip
+        integrate(state, startTime, endTime);
+
+        // Store result
+        integrationResults[root.getNr()] = com;
+    }
+
 
     @Override
     public void init(PrintStream out) {

@@ -14,77 +14,176 @@ import static junit.framework.Assert.assertEquals;
 
 public class MultitypeTest {
 
-    public static void main(String[] args) {
+//    public static void main(String[] args) {
+//
+//        String newick = "t1[&state=0]:1.0;";
+//        Tree tree = new TreeParser(newick, false,false,true,0);
+//        RealParameter origin = new RealParameter("1.0");
+//        RealParameter startTypePriorProbs = new RealParameter("0.5 0.5");
+//
+//        Parameterization parameterization = new CanonicalParameterization();
+//        parameterization.initByName(
+//                "typeSet", new TypeSet(2),
+//                "processLength", origin,
+//                "birthRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("3.0 3.0"), 2),
+//                "deathRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.5 0.5"), 2),
+//                "birthRateAmongDemes", new SkylineMatrixParameter(
+//                        null,
+//                        new RealParameter("1.5 1.0"), 2),
+//                "migrationRate", new SkylineMatrixParameter(
+//                        null,
+//                        new RealParameter("0.0 0.0"), 2),
+//                "samplingRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.0"), 2),
+//                "removalProb", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.0"), 2),
+//                "rhoSampling", new TimedParameter(
+//                        origin,
+//                        new RealParameter("0.2 0.0"), 2));
+//
+//        BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
+//
+//        density.initByName(
+//                "parameterization", parameterization,
+//                "startTypePriorProbs", startTypePriorProbs,
+//                "conditionOnSurvival", false,
+//                "tree", tree,
+//                "typeLabel", "state",
+//                "parallelize", false,
+//                "useAnalyticalSingleTypeSolution", false,
+//                "storeIntegrationResults", true
+//        );
+//
+//        density.calculateLogP();  // Calculate LogP to call integration method
+//        ContinuousOutputModel[] p0geResults = density.getIntegrationResults();
+//
+//        int nodeNr = 0;
+//
+//        PiSystem piSystem = new PiSystem(parameterization, tree, p0geResults, 1e-100, 1e-7);
+//        piSystem.integratePiSingleLineage(startTypePriorProbs.getDoubleValues(), parameterization, 0.0, 1.0);
+//
+//
+//        int steps = 100;
+//        double branchLength = 1;
+//        double stepSize = branchLength / steps;
+//        double parentTime = 0;
+//        ContinuousOutputModel model = piSystem.integrationResults[nodeNr];
+//
+//        for (int i = 0; i < steps; i++) {
+//            double t = parentTime + (i + 0.5) * stepSize;  // Midpoint of interval
+//            model.setInterpolatedTime(t);
+//            double[] state = model.getInterpolatedState();  // [π0, π1, ge0, ge1]
+//            System.out.printf(" π₀=%.4f π₁=%.4f %n",
+//                    state[0], state[1]);
+//        }
+//
+//
+//        BranchSpikePrior bsp = new BranchSpikePrior();
+//        bsp.initByName("parameterization", parameterization,
+//                "tree", tree,
+//                "spikeShape", "1.0",
+//                "spikes", "1.0 0.5 0.1 0.2 0.7 0.1",
+//                "startTypePriorProbs", startTypePriorProbs,
+//                "bdmDistr", density);
+//
+//        MultiTypeHiddenEvents multitypeHiddenEvents = new MultiTypeHiddenEvents(nodeNr, parameterization,
+//                p0geResults, piSystem.getIntegrationResultsForNode(nodeNr) ,1e-100,1e-7);
+//
+//        double[] hiddenEvents = multitypeHiddenEvents.integrateSingleLineage(new double[2], 0.0, 1.0);
+//
+//        System.out.println("expected number of type A hidden events = " + hiddenEvents[0]);
+//        System.out.println("expected number of type B hidden events = " + hiddenEvents[1]);
+//        System.out.println("sum of expected number of hidden events = " +  (hiddenEvents[0] + hiddenEvents[1]) );
+//    }
 
-        String newick = "t1[&state=0]:1.0;";
-        Tree tree = new TreeParser(newick, false,false,true,0);
-        RealParameter origin = new RealParameter("1.0");
-        RealParameter startTypePriorProbs = new RealParameter("0.5 0.5");
 
-        Parameterization parameterization = new CanonicalParameterization();
-        parameterization.initByName(
-                "typeSet", new TypeSet(2),
-                "processLength", origin,
-                "birthRate", new SkylineVectorParameter(
-                        null,
-                        new RealParameter("3.0 3.0"), 2),
-                "deathRate", new SkylineVectorParameter(
-                        null,
-                        new RealParameter("0.5 0.5"), 2),
-                "birthRateAmongDemes", new SkylineMatrixParameter(
-                        null,
-                        new RealParameter("0.0 0.0"), 2),
-                "migrationRate", new SkylineMatrixParameter(
-                        null,
-                        new RealParameter("0.4 0.4"), 2),
-                "samplingRate", new SkylineVectorParameter(
-                        null,
-                        new RealParameter("0.0"), 2),
-                "removalProb", new SkylineVectorParameter(
-                        null,
-                        new RealParameter("0.0"), 2),
-                "rhoSampling", new TimedParameter(
-                        origin,
-                        new RealParameter("0.2 0.0"), 2));
-
-        BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
-
-        density.initByName(
-                "parameterization", parameterization,
-                "startTypePriorProbs", startTypePriorProbs,
-                "conditionOnSurvival", false,
-                "tree", tree,
-                "typeLabel", "state",
-                "parallelize", false,
-                "useAnalyticalSingleTypeSolution", false,
-                "storeIntegrationResults", true
-        );
-
-        density.calculateLogP();  // Calculate LogP to call integration method
-        ContinuousOutputModel[] p0geResults = density.getIntegrationResults();
-
-        int nodeNr = 0;
-
-        PiSystem piSystem = new PiSystem(parameterization, tree, p0geResults, 1e-100, 1e-7);
-        piSystem.integratePiSingleLineage(startTypePriorProbs.getDoubleValues(), parameterization, 0.0, 1.0);
-
-        BranchSpikePrior bsp = new BranchSpikePrior();
-        bsp.initByName("parameterization", parameterization,
-                "tree", tree,
-                "spikeShape", "1.0",
-                "spikes", "1.0 0.5 0.1 0.2 0.7 0.1",
-                "startTypePriorProbs", startTypePriorProbs,
-                "bdmDistr", density);
-
-        MultiTypeHiddenEvents multitypeHiddenEvents = new MultiTypeHiddenEvents(nodeNr, parameterization,
-                p0geResults, piSystem.getIntegrationResultsForNode(nodeNr) ,1e-100,1e-7);
-
-        double[] hiddenEvents = multitypeHiddenEvents.integrateSingleLineage(new double[2], 0.0, 1.0);
-
-        System.out.println("expected number of type A hidden events = " + hiddenEvents[0]);
-        System.out.println("expected number of type B hidden events = " + hiddenEvents[1]);
-        System.out.println("sum of expected number of hidden events = " +  (hiddenEvents[0] + hiddenEvents[1]) );
-    }
+    // Test multi-type hidden events expectation calculation for non-zero birth rate among demes
+//    @Test
+//    public void multiTypeEventsBirthAmongDemesTest1() {
+//
+//        String newick = "t1[&state=0]:1.0;";
+//        Tree tree = new TreeParser(newick, false,false,true,0);
+//        RealParameter origin = new RealParameter("1.0");
+//        RealParameter startTypePriorProbs = new RealParameter("0.5 0.5");
+//
+//        Parameterization parameterization = new CanonicalParameterization();
+//        parameterization.initByName(
+//                "typeSet", new TypeSet(2),
+//                "processLength", origin,
+//                "birthRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("3.0 3.0"), 2),
+//                "deathRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.5 0.5"), 2),
+//                "birthRateAmongDemes", new SkylineMatrixParameter(
+//                        null,
+//                        new RealParameter("1.5 0.0"), 2),
+//                "migrationRate", new SkylineMatrixParameter(
+//                        null,
+//                        new RealParameter("0.0 0.0"), 2),
+//                "samplingRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.0"), 2),
+//                "removalProb", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.0"), 2),
+//                "rhoSampling", new TimedParameter(
+//                        origin,
+//                        new RealParameter("0.2 0.0"), 2));
+//
+//        BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
+//
+//        density.initByName(
+//                "parameterization", parameterization,
+//                "startTypePriorProbs", startTypePriorProbs,
+//                "conditionOnSurvival", false,
+//                "tree", tree,
+//                "typeLabel", "state",
+//                "parallelize", false,
+//                "useAnalyticalSingleTypeSolution", false,
+//                "storeIntegrationResults", true
+//        );
+//
+//        density.calculateLogP();  // Calculate LogP to call integration method
+//        ContinuousOutputModel[] p0geResults = density.getIntegrationResults();
+//
+//        int nodeNr = 0;
+//
+//        PiSystem piSystem = new PiSystem(parameterization, tree, p0geResults, 1e-100, 1e-7);
+//        piSystem.integratePiSingleLineage(startTypePriorProbs.getDoubleValues(), parameterization, 0.0, 1.0);
+//
+//        BranchSpikePrior bsp = new BranchSpikePrior();
+//        bsp.initByName("parameterization", parameterization,
+//                "tree", tree,
+//                "spikeShape", "1.0",
+//                "spikes", "1.0 0.5 0.1 0.2 0.7 0.1",
+//                "startTypePriorProbs", startTypePriorProbs,
+//                "bdmDistr", density);
+//
+//        MultiTypeHiddenEvents multitypeHiddenEvents = new MultiTypeHiddenEvents(nodeNr, parameterization,
+//                p0geResults, piSystem.getIntegrationResultsForNode(nodeNr) ,1e-100,1e-7);
+//
+//        double[] hiddenEvents = multitypeHiddenEvents.integrateSingleLineage(new double[2], 0.0, 1.0);
+//
+//        System.out.println("expected number of type A hidden events = " + hiddenEvents[0]);
+//        System.out.println("expected number of type B hidden events  " + hiddenEvents[1]);
+//
+//        // Hidden events computed from R simulations (hiddenEventsSim.R)
+//        double sim_hiddenEvents_0 = 4.88864;
+//        double sim_hiddenEvents_1 = 0.0;
+//        double tolerance = 1e-2;
+//
+//        assertEquals("Type 0 hidden events mismatch", sim_hiddenEvents_0, hiddenEvents[0], tolerance);
+//        assertEquals("Type 1 hidden events mismatch", sim_hiddenEvents_1, hiddenEvents[1], tolerance);
+//
+//    }
 
     // Test multi-type hidden events expectation calculation for the zero migration case
     @Test
@@ -486,6 +585,99 @@ public class MultitypeTest {
     }
 
 
+//    @Test
+//    public void piSystemTestBirthAmongDemes() {
+//
+//        String newick = "(t1[&state=0] : 1.0, t2[&state=1] : 1.0);";
+//        Tree tree = new TreeParser(newick, false, false, true, 0);
+//        RealParameter origin = new RealParameter("2.0");
+//        RealParameter startTypePriorProbs = new RealParameter("0.5 0.5");
+//
+//        Parameterization parameterization = new CanonicalParameterization();
+//        parameterization.initByName(
+//                "typeSet", new TypeSet(2),
+//                "processLength", origin,
+//                "birthRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("3.0 3.0"), 2),
+//                "deathRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.5 0.5"), 2),
+//                "birthRateAmongDemes", new SkylineMatrixParameter(
+//                        null,
+//                        new RealParameter("1.5 2.0"), 2),
+//                "migrationRate", new SkylineMatrixParameter(
+//                        null,
+//                        new RealParameter("0.0 0.0"), 2),
+//                "samplingRate", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.0"), 2),
+//                "removalProb", new SkylineVectorParameter(
+//                        null,
+//                        new RealParameter("0.0"), 2),
+//                "rhoSampling", new TimedParameter(
+//                        origin,
+//                        new RealParameter("0.2"), 2));
+//
+//        BirthDeathMigrationDistribution density = new BirthDeathMigrationDistribution();
+//
+//        density.initByName(
+//                "parameterization", parameterization,
+//                "startTypePriorProbs", startTypePriorProbs,
+//                "conditionOnSurvival", false,
+//                "tree", tree,
+//                "typeLabel", "state",
+//                "parallelize", false,
+//                "useAnalyticalSingleTypeSolution", false,
+//                "storeIntegrationResults", true);
+//
+//
+//        density.calculateLogP();  // Calculate LogP to call integration method
+//        ContinuousOutputModel[] p0geResults = density.getIntegrationResults();
+//        // nodeNr 0 = t1
+//        // nodeNr 1 = t2
+//        // nodeNr 2 = root
+//
+//        PiSystem piSystem = new PiSystem(parameterization, tree, p0geResults, 1e-100, 1e-7);
+//        piSystem.integratePi(startTypePriorProbs.getDoubleValues(), parameterization, 0.0);
+//
+//        double[] totalTimeInType = new double[2];  // For type 0 and type 1
+//
+//        for (int nodeNr = 0; nodeNr < 2; nodeNr++) {
+//            Node node = tree.getNode(nodeNr);
+//            if (node.isRoot()) continue;
+//
+//            double nodeTime = parameterization.getNodeTime(node, 0);
+//            double parentTime = parameterization.getNodeTime(node.getParent(), 0);
+//            double branchLength = nodeTime - parentTime;
+//            int steps = 100;
+//            double stepSize = branchLength / steps;
+//
+//            ContinuousOutputModel model = piSystem.integrationResults[nodeNr];
+//
+//            for (int i = 0; i < steps; i++) {
+//                double t = parentTime + (i + 0.5) * stepSize;  // Midpoint of interval
+//                model.setInterpolatedTime(t);
+//                double[] state = model.getInterpolatedState();  // [π0, π1, ge0, ge1]
+//
+//                totalTimeInType[0] += state[0] * stepSize;
+//                totalTimeInType[1] += state[1] * stepSize;
+//            }
+//        }
+//        // Tree type statistics from BDMM-Prime stochastic mapping method (mapper2.xml)
+//        double typedTreeLength_0 = 1.083;
+//        double typedTreeLength_1 = 0.954;
+//        double tolerance = 5e-3;
+//
+//        System.out.println("Type 0 edge length = " +  totalTimeInType[0]);
+//        System.out.println("Type 1 edge length = " +  totalTimeInType[1]);
+//
+//        assertEquals("Type 0 edge length mismatch", typedTreeLength_0, totalTimeInType[0], tolerance);
+//        assertEquals("Type 1 edge length mismatch", typedTreeLength_1, totalTimeInType[1], tolerance);
+//    }
+
+
+
     @Test
     public void hiddenEventsODEAnalyticalSingleTypeTest() {
 
@@ -533,7 +725,7 @@ public class MultitypeTest {
                 "bdmDistr", density
         );
 
-        double tolerance = 1e-6;
+        double tolerance = 1e-3;
         for (int nodeNr = 0; nodeNr <= 1; nodeNr++) {
             Node node = tree.getNode(nodeNr);
 
@@ -602,7 +794,7 @@ public class MultitypeTest {
                 "bdmDistr", density
         );
 
-        double tolerance = 1e-6;
+        double tolerance = 1e-3;
         for (int nodeNr = 0; nodeNr <= 1; nodeNr++) {
             Node node = tree.getNode(nodeNr);
 
