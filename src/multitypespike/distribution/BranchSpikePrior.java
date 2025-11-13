@@ -344,7 +344,7 @@ public class BranchSpikePrior extends Distribution {
             double[] expNrHiddenEventsArray = getMultiTypeExpForBranch(node, piCom);
             System.arraycopy(expNrHiddenEventsArray, 0, expectedHiddenEvents, nodeNr * nTypes, nTypes);
 
-            // Get pi at time of the observed speciation event of the node
+            // Compute π at time of the observed speciation event of the node, π(t₀)
             piCom.setInterpolatedTime(parameterization.getNodeTime(node.getParent(), finalSampleOffset));
             double[] piArray = piCom.getInterpolatedState();
 
@@ -419,48 +419,98 @@ public class BranchSpikePrior extends Distribution {
         return conds;
     }
 
-    // Samples spikes for single-type models
+
+    // Samples spike amplitudes from Gamma-Poisson distribution
     @Override
     public void sample(State state, Random random) {
 
         if (sampledFlag) return;
         sampledFlag = true;
-
-        if (nTypes > 1) {
-            throw new UnsupportedOperationException("Sampling not implemented for multi-type spikes yet");
-        }
-
         // Cause conditional parameters to be sampled
         sampleConditions(state, random);
 
-        double spikeShape = spikeShapeInput.get().getValue();
-        spikesInput.get().setDimension(nodeCount);
+        // Single-type case
+        if (nTypes == 1) {
 
-        if (spikeShape <= 0) {
-            throw new IllegalArgumentException("Cannot sample spikes because spikeShape is non-positive " + spikeShape);
-        }
+            double spikeShape = spikeShapeInput.get().getValue();
+            spikesInput.get().setDimension(nodeCount);
 
-        for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
-
-            Node node = treeInput.get().getNode(nodeNr);
-
-            // Handle origin branch and sampled ancestor branch
-            if (node.isRoot() || node.isDirectAncestor()) {
-                spikesInput.get().setValue(nodeNr, 0.0);
-                continue;
+            if (spikeShape <= 0) {
+                throw new IllegalArgumentException("Cannot sample spikes because spikeShape is non-positive " + spikeShape);
             }
 
-            double expNrHiddenEvents = getExpNrHiddenEventsForBranch(node);
-            int nHiddenEvents = (int) Randomizer.nextPoisson(expNrHiddenEvents);
-            int nSpikes = node.getParent().isFake() ? nHiddenEvents : nHiddenEvents + 1;
-            double alpha = spikeShape * nSpikes;
+            for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
 
-            // Sample spike from Gamma distribution if nSpikes > 0
-            // Uses spikeShape instead of 1/spikeShape due to different parameterisation of the Gamma distribution
-            double spike = (nSpikes == 0) ? 0.0 : Randomizer.nextGamma(alpha, spikeShape);
+                Node node = treeInput.get().getNode(nodeNr);
 
-            spikesInput.get().setValue(nodeNr, spike);
+                // Handle origin branch and sampled ancestor branch
+                if (node.isRoot() || node.isDirectAncestor()) {
+                    spikesInput.get().setValue(nodeNr, 0.0);
+                    continue;
+                }
 
+                double expNrHiddenEvents = getExpNrHiddenEventsForBranch(node);
+                int nHiddenEvents = (int) Randomizer.nextPoisson(expNrHiddenEvents);
+                int nSpikes = node.getParent().isFake() ? nHiddenEvents : nHiddenEvents + 1;
+                double alpha = spikeShape * nSpikes;
+
+                // Sample spike from Gamma distribution if nSpikes > 0
+                // Uses spikeShape instead of 1/spikeShape due to different parameterisation of the Gamma distribution
+                double spike = (nSpikes == 0) ? 0.0 : Randomizer.nextGamma(alpha, spikeShape);
+
+                spikesInput.get().setValue(nodeNr, spike);
+
+            }
+
+
+        // Multi-type case
+        } else {
+
+            double[] spikeShapeArray = spikeShapeInput.get().getDoubleValues();
+            spikesInput.get().setDimension(nodeCount * nTypes);
+
+            PiSystem piSystem = new PiSystem(parameterization, treeInput.get(),
+                    bdmDistrInput.get().getIntegrationResults(),1e-8, 1e-8);
+            piSystem.integratePi(startTypePriorProbsInput.get().getDoubleValues(), parameterization, finalSampleOffset);
+
+
+            for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
+
+                Node node = treeInput.get().getNode(nodeNr);
+
+                if (node.isRoot() || node.isDirectAncestor()) {
+                    // Zero spikes for root and direct ancestors
+                    for (int i = 0; i < nTypes; i++) {
+                        spikesInput.get().setValue(nodeNr + nodeCount * i, 0.0);
+                    }
+                    continue;
+                }
+
+                ContinuousOutputModel piCom = piSystem.getIntegrationResultsForNode(node.getNr());
+
+                // Compute expected number of hidden speciation events for this branch for each types
+                double[] expNrHiddenEventsArray = getMultiTypeExpForBranch(node, piCom);
+
+                // Compute π at time of the observed speciation event of the node, π(t₀)
+                piCom.setInterpolatedTime(parameterization.getNodeTime(node.getParent(), finalSampleOffset));
+                double[] piArray = piCom.getInterpolatedState();
+
+
+                for (int i = 0; i < nTypes; i++) {
+
+                    double expNrHiddenEvents = expNrHiddenEventsArray[i];
+                    double spikeShape = getSpikeShape(spikeShapeArray, i);
+
+                    int nHiddenEvents = (int) Randomizer.nextPoisson(expNrHiddenEvents);
+                    double nSpikes = node.getParent().isFake() ? nHiddenEvents : nHiddenEvents + piArray[i];
+                    double alpha = spikeShape * nSpikes;
+
+                    double spike = (nSpikes == 0) ? 0.0 : Randomizer.nextGamma(alpha, spikeShape);
+                    spikesInput.get().setValue(nodeNr + nodeCount * i, spike);
+
+
+                }
+            }
         }
     }
 
@@ -524,7 +574,7 @@ public class BranchSpikePrior extends Distribution {
         BranchSpikePrior bsp = new BranchSpikePrior();
         bsp.initByName("parameterization", parameterization,
                 "tree", tree,
-                "spikeShape", "1.0",
+                "spikeShape", "1.0 1.0",
                 "spikes", "1.0 0.5",
                 "startTypePriorProbs", startTypePriorProbs,
                 "bdmDistr", density
