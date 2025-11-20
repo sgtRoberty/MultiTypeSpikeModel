@@ -11,6 +11,8 @@ import beast.base.inference.parameter.RealParameter;
 import beast.base.util.Randomizer;
 
 
+// Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
+
 @Description("Flips a spike from zero to non zero, or vice versa")
 public class SpikeFlipOperator extends Operator {
 

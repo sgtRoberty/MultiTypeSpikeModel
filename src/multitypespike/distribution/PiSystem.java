@@ -174,7 +174,6 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
             // Determine intervals and integrate from parent to this node
             integratePiAlongEdge(node, parentTime, state, parameterization, finalSampleOffset);
         }
-
         // Recurse to children
         for (Node child : node.getChildren()) {
             PiState childState = new PiState(nTypes);
@@ -195,7 +194,6 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
 
         // Set initial conditions at root
         setInitialConditionsForPi(state, startTypePriorProbs, rootTime);
-
         // Start pre-order traversal integration from root
         integratePiAtNode(root, rootTime,
                 state, parameterization, finalSampleOffset);

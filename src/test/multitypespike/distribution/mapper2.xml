@@ -50,7 +50,7 @@
     </typedTree>
 
 
-    <run spec="GPSimulator" nSims="100000">
+    <run spec="GPSimulator" nSims="1000000">
 
         <simulationObject idref="typedTree"/>
 

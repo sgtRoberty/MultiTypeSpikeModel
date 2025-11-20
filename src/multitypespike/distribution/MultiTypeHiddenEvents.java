@@ -14,7 +14,6 @@ public class MultiTypeHiddenEvents implements FirstOrderDifferentialEquations {
     private double[] expNrHiddenEvents;
 
     private final double[][] b;
-    private final double[][][] b_ij;
     protected int interval;
 
     private final int nTypes;
@@ -33,7 +32,6 @@ public class MultiTypeHiddenEvents implements FirstOrderDifferentialEquations {
 
         this.nodeNr = nodeNr;
         this.b = parameterization.getBirthRates();
-        this.b_ij = parameterization.getCrossBirthRates();
         this.nTypes = parameterization.getNTypes();
         this.intervalEndTimes = parameterization.getIntervalEndTimes();
         this.p0geComArray = p0geComArray;
@@ -82,21 +80,7 @@ public class MultiTypeHiddenEvents implements FirstOrderDifferentialEquations {
         double[] p0Values = getP0Values(nodeNr, t);
 
         for (int i = 0; i < nTypes; i++) {
-            double sum = 2 * b[interval][i] * p0Values[i];
-
-//            for (int j = 0; j < nTypes; j++) {
-//                if (i != j) {
-//                  System.out.println("p0_" + i +" = " + p0Values[i]);
-//                  System.out.println("p0_" + j +" = " + p0Values[j]);
-//
-//                  sum += b_ij[interval][i][j] * p0Values[j];
-//
-//                  if (p0Values[j] == 1) sum += b_ij[interval][i][j] * p0Values[j];
-//                  else if (p0Values[i] == 1) sum += b_ij[interval][i][j] * p0Values[i];
-//                  else sum += b_ij[interval][i][j] * (p0Values[i] + p0Values[j]);
-//                }
-//            }
-            yDot[i] = piValues[i] * sum;
+            yDot[i] = 2 * piValues[i] * b[interval][i] * p0Values[i];
         }
     }
 

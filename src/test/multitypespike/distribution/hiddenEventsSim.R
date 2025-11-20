@@ -241,13 +241,13 @@ lambdaA <- 3.0
 lambdaB <- 3.0
 muA <- 0.5
 muB <- 0.5
-mAB <- 0.0
-mBA <- 0.0
+mAB <- 0.2
+mBA <- 0.4
 lambdaAB <- 1.5
-lambdaBA <- 0.0
+lambdaBA <- 1.0
 ProbA <- 0.5
 rho <- 0.2
-nMax <- 10000
+nMax <- 100000
 
 
 # Simulate and plot
@@ -314,24 +314,14 @@ while (k <= nMax) {
     else if (event == 3 && current_type == "B") {  # birthB
       if (runif(1) < 2 / Nt_B) hidden_eventsB <- hidden_eventsB + 1
     }
-    
-    else if (event == 7 && current_type == "A") {  # birthAB
-      if (runif(1) < 1 / Nt_A)  hidden_eventsA <- hidden_eventsA + 1
-    }
     else if (event == 7 && current_type == "B") {  # birthAB
       if (runif(1) < 1 / Nt_B) {
         current_type <- "A"
-        hidden_eventsA <- hidden_eventsA + 1
         }
-    }
-    
-    else if (event == 8 && current_type == "B") {  # birthBA
-      if (runif(1) < 1 / Nt_B) hidden_eventsB <- hidden_eventsB + 1
     }
     else if (event == 8 && current_type == "A") {  # birthBA
       if (runif(1) < 1 / Nt_A) {
         current_type <- "B"
-        hidden_eventsB <- hidden_eventsB + 1
         }
     }
   }
