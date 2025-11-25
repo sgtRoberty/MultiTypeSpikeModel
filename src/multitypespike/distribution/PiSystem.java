@@ -90,14 +90,20 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
     public void computeDerivatives(double t, double[] y, double[] yDot) {
         double[] p0ge = getP0Ge(currentNodeNr, t);
 
+//        System.out.format("*** t=%g pi[0]=%g pi[1]=%g\n", t, y[0], y[1]);
+
         for (int i = 0; i< nTypes; i++) {
             yDot[i] = 0;
 
             for (int j = 0; j < nTypes; j++) {
                 if (j == i) continue;
 
-                yDot[i] += ((b_ij[interval][j][i] * p0ge[j] + M[interval][j][i]) * (p0ge[nTypes + i] / Math.max(p0ge[nTypes + j], 1e-12))) * y[j];
-                yDot[i] -= ((b_ij[interval][i][j] * p0ge[i] + M[interval][i][j]) * (p0ge[nTypes + j] / Math.max(p0ge[nTypes + i], 1e-12))) * y[i];
+
+//                yDot[i] += ((b_ij[interval][j][i] * p0ge[j] + M[interval][j][i]) * (p0ge[nTypes + i] / p0ge[nTypes + j])) * y[j];
+//                yDot[i] -= ((b_ij[interval][i][j] * p0ge[i] + M[interval][i][j]) * (p0ge[nTypes + j] / p0ge[nTypes + i])) * y[i];
+
+                yDot[i] += ((b_ij[interval][j][i] * p0ge[j] + M[interval][j][i]) * (p0ge[nTypes + i] / Math.max(p0ge[nTypes + j], 1e-6))) * y[j];
+                yDot[i] -= ((b_ij[interval][i][j] * p0ge[i] + M[interval][i][j]) * (p0ge[nTypes + j] / Math.max(p0ge[nTypes + i], 1e-6))) * y[i];
             }
         }
     }
@@ -126,41 +132,115 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
         piIntegrator.integrate(this, tStart, state.pi, tEnd, state.pi);
     }
 
-    public void integratePiAlongEdge(Node node, double tStart, PiState state,
-                                  Parameterization parameterization, double finalSampleOffset) {
+//    public void integratePiAlongEdge(Node node, double tStart, PiState state,
+//                                  Parameterization parameterization, double finalSampleOffset) {
+//        ContinuousOutputModel continuousOutputModel = new ContinuousOutputModel();
+////        ContinuousOutputModel com = new ContinuousOutputModel();
+////        piIntegrator.clearStepHandlers();
+////        piIntegrator.addStepHandler(com);
+//
+//        setCurrentNodeNr(node.getNr());
+//
+//        double thisTime = tStart;
+//        double tEnd = parameterization.getNodeTime(node, finalSampleOffset);
+//
+////        if (node.isLeaf()) tEnd = tEnd - 1e-4;
+//
+//        int thisInterval = parameterization.getIntervalIndex(thisTime);
+//        int endInterval = parameterization.getNodeIntervalIndex(node, finalSampleOffset);
+//
+//        while (thisInterval < endInterval) {
+//            // Forward integration across intervals
+//            double nextTime = intervalEndTimes[thisInterval];
+//
+//            if (Utils.lessThanWithPrecision(thisTime, nextTime)) {
+////                ContinuousOutputModel com = new ContinuousOutputModel();
+////                piIntegrator.clearStepHandlers();
+////                piIntegrator.addStepHandler(com);
+//
+//                setInterval(thisInterval);
+//                integrate(state, thisTime, nextTime);
+////                com.append(com);
+//
+//                continuousOutputModel.append(com);
+//
+////                for (int idx=0; idx<101; idx+=1) {
+////                    double thist = tStart + idx*(tEnd-tStart)/101;
+////                    com.setInterpolatedTime(thist);
+////                    double[] thispi = com.getInterpolatedState();
+////                    System.out.format("*** t=%g pi[0]=%g pi[1]=%g\n", thist, thispi[0], thispi[1]);
+////                }
+////                System.exit(0);
+//            }
+//
+//            thisTime = nextTime;
+//            thisInterval += 1;
+//        }
+//
+//        if (Utils.lessThanWithPrecision(thisTime, tEnd)) {
+//            setInterval(thisInterval);
+//            integrate(state, thisTime, tEnd);
+//            continuousOutputModel.append(com);
+//
+//        }
+//
+//        // Store integration results for each edge
+////        integrationResults[node.getNr()] = com;
+//        integrationResults[node.getNr()] = continuousOutputModel;
+//    }
 
-        ContinuousOutputModel com = new ContinuousOutputModel();
-        piIntegrator.clearStepHandlers();
-        piIntegrator.addStepHandler(com);
+
+
+    public void integratePiAlongEdge(Node node, double tStart, PiState state,
+                                     Parameterization parameterization, double finalSampleOffset) {
+
+        ContinuousOutputModel fullModel = new ContinuousOutputModel();
 
         setCurrentNodeNr(node.getNr());
 
         double thisTime = tStart;
         double tEnd = parameterization.getNodeTime(node, finalSampleOffset);
+
         int thisInterval = parameterization.getIntervalIndex(thisTime);
         int endInterval = parameterization.getNodeIntervalIndex(node, finalSampleOffset);
 
         while (thisInterval < endInterval) {
-            // Forward integration across intervals
+
             double nextTime = intervalEndTimes[thisInterval];
 
             if (Utils.lessThanWithPrecision(thisTime, nextTime)) {
+
+                ContinuousOutputModel segment = new ContinuousOutputModel();
+
+                piIntegrator.clearStepHandlers();
+                piIntegrator.addStepHandler(segment);
+
                 setInterval(thisInterval);
                 integrate(state, thisTime, nextTime);
+
+                fullModel.append(segment);
             }
 
             thisTime = nextTime;
-            thisInterval += 1;
+            thisInterval++;
         }
 
         if (Utils.lessThanWithPrecision(thisTime, tEnd)) {
+
+            ContinuousOutputModel segment = new ContinuousOutputModel();
+
+            piIntegrator.clearStepHandlers();
+            piIntegrator.addStepHandler(segment);
+
             setInterval(thisInterval);
             integrate(state, thisTime, tEnd);
+
+            fullModel.append(segment);
         }
 
-        // Store integration results for each edge
-        integrationResults[node.getNr()] = com;
+        integrationResults[node.getNr()] = fullModel;
     }
+
 
 
     public void integratePiAtNode(Node node, double parentTime, PiState state,
@@ -177,8 +257,8 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
         // Recurse to children
         for (Node child : node.getChildren()) {
             PiState childState = new PiState(nTypes);
-            // Copy current state as starting condition for child
             System.arraycopy(state.pi, 0, childState.pi, 0, nTypes);
+            // Copy current state as starting condition for child
             integratePiAtNode(child, nodeTime, childState, parameterization, finalSampleOffset);
         }
     }
@@ -204,7 +284,7 @@ public class PiSystem implements FirstOrderDifferentialEquations, Loggable {
                             Parameterization parameterization, double startTime, double endTime) {
 
         Node root = this.tree.getRoot();
-        if(!root.isLeaf()) System.out.println("Not a single-lineage tree");
+        if(!root.isLeaf()) throw new RuntimeException("Not a single-lineage tree!");
 
         setCurrentNodeNr(root.getNr());
         PiState state = new PiState(parameterization.getNTypes());

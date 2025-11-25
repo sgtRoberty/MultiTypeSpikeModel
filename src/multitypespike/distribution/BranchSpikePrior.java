@@ -151,7 +151,7 @@ public class BranchSpikePrior extends Distribution {
 
     public double getExpectedHiddenEvents(int nodeNr, int type) {
         if (nTypes == 1) return expectedHiddenEvents[nodeNr];
-        return expectedHiddenEvents[nodeNr * nTypes + type];
+        return expectedHiddenEvents[nodeNr * nTypes + type]; // TODO: Check this, produces lots of zeros
     }
 
     private void updateParametersForInterval(int i) {
@@ -282,6 +282,9 @@ public class BranchSpikePrior extends Distribution {
                 logP += Math.log(branchP);
 
             } else {
+                System.out.println("nodeNr = " + nodeNr);
+                System.out.println("expNrHiddenEvents = " + expNrHiddenEvents);
+                System.out.println("Length of branch = " + node.getLength());
                 throw new RuntimeException("Expected number of hidden events is zero for non-sampled ancestor branch");
             }
         }
@@ -329,7 +332,7 @@ public class BranchSpikePrior extends Distribution {
                 // Set a pseudo-prior for spikes when they are not included in the model
                 // This facilitates transitions between models of different dimensions
                 for (int i = 0; i < nTypes; i++) {
-                    expectedHiddenEvents[nodeNr + i] = 0;
+                    expectedHiddenEvents[nodeNr * nTypes + i] = 0;
 
                     double spikeShape = getSpikeShape(spikeShapeArray, i);
                     GammaDistribution gamma = new GammaDistributionImpl(spikeShape, 1 / spikeShape);
@@ -353,7 +356,7 @@ public class BranchSpikePrior extends Distribution {
                 double spikeShape = getSpikeShape(spikeShapeArray, i);
                 double expNrHiddenEvents = expNrHiddenEventsArray[i];
 
-                expectedHiddenEvents[nodeNr + i] = expNrHiddenEvents;
+                expectedHiddenEvents[nodeNr * nTypes + i] = expNrHiddenEvents;
 
                 if (expNrHiddenEvents > 0) {
                     double branchP = 0.0;
@@ -368,6 +371,8 @@ public class BranchSpikePrior extends Distribution {
 
                         // Number of spikes is k + π(t₀) unless parent of the node is a sampled ancestor (fake), in which case it is k
                         double nSpikes = node.getParent().isFake() ? k : k + piArray[i];
+
+                        if (piArray[i] < 0 ) throw new RuntimeException("Warning: π(t₀) less than zero!");
 
                         if (nSpikes == 0) {
                             // Valid zero spike
@@ -388,7 +393,9 @@ public class BranchSpikePrior extends Distribution {
                     logP += Math.log(branchP);
 
                 } else {
-                    System.out.println(expNrHiddenEvents);
+                    System.out.println("nodeNr = " + nodeNr);
+                    System.out.println("expNrHiddenEvents = " + expNrHiddenEvents);
+                    System.out.println("Length of branch = " + node.getLength());
                     throw new RuntimeException("Expected number of hidden events is zero for non-sampled ancestor branch");
                 }
             }
@@ -490,6 +497,7 @@ public class BranchSpikePrior extends Distribution {
                 }
 
                 ContinuousOutputModel piCom = piSystem.getIntegrationResultsForNode(node.getNr());
+                System.out.println(piCom == null);
 
                 // Compute expected number of hidden speciation events for this branch for each types
                 double[] expNrHiddenEventsArray = getMultiTypeExpForBranch(node, piCom);
