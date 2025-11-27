@@ -10,7 +10,6 @@ import beast.base.core.Input.Validate;
 import beast.base.inference.CalculationNode;
 import multitypespike.clockmodel.PunctuatedClockModel;
 
-// Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
 @Description("Logs spike values per branch scaled by the spike mean parameter")
 public class SpikeLogger extends CalculationNode implements Function, Loggable {

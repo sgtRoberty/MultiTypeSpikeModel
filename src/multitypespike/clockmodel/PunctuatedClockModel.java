@@ -2,7 +2,6 @@ package multitypespike.clockmodel;
 
 import beast.base.core.Function;
 import beast.base.core.Input;
-import beast.base.core.Log;
 import beast.base.evolution.branchratemodel.BranchRateModel;
 import beast.base.evolution.tree.Node;
 import beast.base.evolution.tree.Tree;
@@ -10,8 +9,10 @@ import beast.base.inference.parameter.BooleanParameter;
 import beast.base.inference.parameter.RealParameter;
 import beast.base.inference.util.InputUtil;
 
-// Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
+/**
+ * Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
+ */
 
 public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<Tree> treeInput = new Input<>("tree", "tree input", Input.Validate.REQUIRED);
@@ -26,7 +27,6 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
 
     @Override
     public void initAndValidate() {
-        Log.warning("WARNING: This model assumes zero cross-birth rates (birth among demes). Non-zero values may lead to unexpected behaviour.");
 
         if (relaxedInput.get() != null && relaxedInput.get().getValue()) {
             if (ratesInput.get() == null) {
@@ -86,9 +86,8 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         double spikeSum = 0;
         for (int i = 0; i < nTypes; i++) {
             double spikeMean = getSpikeMean(i);
-            spikeSum += spikesInput.get().getValue(node.getNr() + nodeCount * i) * spikeMean;
+            spikeSum += spikesInput.get().getValue(node.getNr() * nTypes + i) * spikeMean;
         }
-
         return spikeSum;
     }
 
@@ -115,7 +114,6 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         // Effective rate takes into account spike and base rate
         return branchDistance / node.getLength();
     }
-
 
 
     public double getRelaxedBranchRate(Node node) {

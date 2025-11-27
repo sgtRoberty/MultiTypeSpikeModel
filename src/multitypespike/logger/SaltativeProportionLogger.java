@@ -10,7 +10,6 @@ import multitypespike.clockmodel.PunctuatedClockModel;
 
 import java.io.PrintStream;
 
-// Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
 
 @Description("Logs the proportion of total evolutionary distance across the tree that is attributable to punctuated evolution, as opposed to gradual evolution")
 public class SaltativeProportionLogger extends BEASTObject implements Loggable {
