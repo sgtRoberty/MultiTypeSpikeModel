@@ -14,11 +14,10 @@ import java.io.PrintStream;
  * Based on <GammaSpikeModel>  Copyright (C) <2025>  <Jordan Douglas>
  */
 
-@Description("Logs expected number of hidden speciation events per branch")
+@Description("Logs the expected number of hidden speciation events per branch")
 public class ExpectedHiddenEventsLogger extends CalculationNode implements Function, Loggable {
     final public Input<BranchSpikePrior> branchSpikePriorInput =
-            new Input<>("branchSpikePrior", "Branch spike prior input", Validate.REQUIRED);
-
+            new Input<>("branchSpikePrior", "Branch spike prior", Validate.REQUIRED);
     final public Input<Boolean> logPerTypeInput = new Input<>(
             "logPerType",
             "If true, log expected hidden events for each type separately for multi-type models; " +
@@ -34,6 +33,7 @@ public class ExpectedHiddenEventsLogger extends CalculationNode implements Funct
         logPerType = logPerTypeInput.get();
         nTypes = branchSpikePriorInput.get().nTypes;
         nodeCount = branchSpikePriorInput.get().nodeCount;
+
         if (nTypes == 1 && logPerType) throw new RuntimeException("logPerType cannot be true for single-type models.");
     }
 
@@ -47,7 +47,7 @@ public class ExpectedHiddenEventsLogger extends CalculationNode implements Funct
 
     @Override
     public int getDimension() {
-        if(nTypes == 1 || logPerType) return nTypes * nodeCount;
+        if(logPerType) return nTypes * nodeCount;
         else return nodeCount;
     }
 
@@ -58,8 +58,8 @@ public class ExpectedHiddenEventsLogger extends CalculationNode implements Funct
         } else {
             // Sum across all types for each node
             double sum = 0.0;
-            for (int t = 0; t < nTypes; t++) {
-                sum += branchSpikePriorInput.get().getExpectedHiddenEvents(dim, t);
+            for (int type = 0; type < nTypes; type ++) {
+                sum += branchSpikePriorInput.get().getExpectedHiddenEvents(dim, type);
             }
             return sum;
         }
