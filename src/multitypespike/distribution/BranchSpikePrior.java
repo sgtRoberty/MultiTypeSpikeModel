@@ -65,8 +65,8 @@ public class BranchSpikePrior extends Distribution {
         parameterization = parameterizationInput.get();
         nTypes = parameterization.getNTypes();
         nodeCount = treeInput.get().getNodeCount();
-        expectedHiddenEvents = new double[nodeCount];
-        piVals = new double[nodeCount];
+        expectedHiddenEvents = new double[nodeCount * nTypes];
+        piVals = new double[nodeCount * nTypes];
 
         if (nTypes != 1) {
             if (startTypePriorProbsInput.get() == null) {
@@ -112,9 +112,8 @@ public class BranchSpikePrior extends Distribution {
                 int index = nodeNr * nTypes + i;
                 if (spikesInput.get().getValue(index)==0) spikesInput.get().setValue(index, 0.5);
             }
+
         }
-
-
     }
 
 

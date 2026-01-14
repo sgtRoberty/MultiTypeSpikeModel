@@ -24,7 +24,7 @@ public class HiddenEventsLogger extends CalculationNode implements Function, Log
             new Input<>("branchSpikePrior", "Branch spike prior", Input.Validate.REQUIRED);
     final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "if false then no spikes are inferred", Input.Validate.OPTIONAL);
     final public Input<Boolean> logPerTypeInput = new Input<>(
-            "logPerType","If true, log expected hidden events for each type separately for multi-type models; " +
+            "logPerType","If true, log hidden events of each type separately for multi-type models; " +
                     "if false, log totals per node (sum across types).",false); // default: sum across types
 
 
@@ -119,15 +119,9 @@ public class HiddenEventsLogger extends CalculationNode implements Function, Log
      * Calculate cumulative probabilities of sampling hidden events, conditional on the gamma distribution and tree prior (theta)
      * p(hiddenEvents | spike size, theta) = p(spike size | hiddenEvents, theta) x p (hiddenEvents | theta) / p (spike size | theta)
      */
+
+    // Single-type version
     public double[] getCumulativeProbs(int nodeNr) {
-        return singleTypeCumulativeProbs(nodeNr);
-    }
-
-    public double[] getCumulativeProbs(int nodeNr, int type) {
-        return multiTypeCumulativeProbs(nodeNr, type);
-    }
-
-    public double[] singleTypeCumulativeProbs(int nodeNr) {
 
         Node node = bsp.treeInput.get().getNode(nodeNr);
 
@@ -210,8 +204,8 @@ public class HiddenEventsLogger extends CalculationNode implements Function, Log
 
     }
 
-
-    public double[] multiTypeCumulativeProbs(int nodeNr, int type) {
+    // Multi-type version
+    public double[] getCumulativeProbs(int nodeNr, int type) {
 
         Node node = bsp.treeInput.get().getNode(nodeNr);
 
