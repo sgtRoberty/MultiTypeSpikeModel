@@ -60,7 +60,7 @@ public class SpikeUpDownOperator extends BactrianScaleOperator {
             spikes.setValue(index, s_);
         }
 
-        return 0;
+        return (1 - nTypes) * Math.log(scale);
     }
 
 }
