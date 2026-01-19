@@ -15,27 +15,38 @@ import multitypespike.clockmodel.PunctuatedClockModel;
 public class SpikeLogger extends CalculationNode implements Function, Loggable {
     final public Input<PunctuatedClockModel> clockModelInput =
             new Input<>("clock", "Punctuated clock model input", Validate.REQUIRED);
+    final public Input<Boolean> logPerTypeInput = new Input<>(
+            "logPerType","If true, log spikes of each type separately for multi-type models; " +
+            "if false, log totals per node (sum across types).",false); // default: sum across types
 
-
+    int nTypes, nodeCount;
+    private boolean logPerType;
 
     @Override
     public void initAndValidate() {
+        nTypes = clockModelInput.get().nTypes;
+        nodeCount = clockModelInput.get().nodeCount;
+        logPerType = logPerTypeInput.get();
     }
 
     @Override
     public int getDimension() {
-        return clockModelInput.get().getSpikeDimension();
-    }
-
-    @Override
-    public double getArrayValue() {
-        return getArrayValue(0);
+        if(logPerType) return nTypes * nodeCount;
+        else return nodeCount;
     }
 
 
     @Override
     public double getArrayValue(int dim) {
-        return clockModelInput.get().getSpikeSize(dim);
+        if(nTypes == 1) {
+            return clockModelInput.get().getSpikeSize(dim);
+        } else if(!logPerType) {
+            return clockModelInput.get().getSpikeSize(dim);
+        } else {
+            int type = dim % nTypes;
+            int nodeNr = dim / nTypes;
+            return clockModelInput.get().getSpikeSize(nodeNr, type);
+        }
     }
 
 
@@ -44,10 +55,19 @@ public class SpikeLogger extends CalculationNode implements Function, Loggable {
      */
     @Override
     public void init(PrintStream out) {
-        for (int i = 0; i < this.getDimension(); i ++) {
-            String id = this.getID();
-            if (id == null || id.equals("")) id = "scaledSpike";
-            out.print(id + "." + i + "\t");
+        String id = this.getID();
+        if (id == null || id.isEmpty()) id = "scaledSpike";
+
+        if (logPerType) {
+            for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
+                for (int t = 0; t < nTypes; t++) {
+                    out.print(id + ".node" + nodeNr + ".type" + t + "\t");
+                }
+            }
+        } else {
+            for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
+                out.print(id + ".node" + nodeNr + "\t");
+            }
         }
     }
 

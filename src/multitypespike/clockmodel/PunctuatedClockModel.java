@@ -23,7 +23,8 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<BooleanParameter> indicatorInput = new Input<>("indicator", "if false then no spikes are inferred", Input.Validate.OPTIONAL);
     final public Input<Boolean> noSpikeOnDatedTipsInput = new Input<>("noSpikeOnDatedTips", "Set to true if dated tips should have a spike of 0", false);
 
-    int nTypes, nodeCount, spikeMeanDim;
+    public int nTypes, nodeCount;
+    int spikeMeanDim;
 
     @Override
     public void initAndValidate() {
@@ -31,6 +32,12 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         if (relaxedInput.get() != null && relaxedInput.get().getValue()) {
             if (ratesInput.get() == null) {
                 throw new IllegalArgumentException("If 'relaxed' is true, then the rates input must be provided.");
+            }
+        }
+
+        if (relaxedInput.get() != null && !relaxedInput.get().getValue()) {
+            if (meanRateInput.get() == null) {
+                throw new IllegalArgumentException("If 'relaxed' is false, then the clock.rate input must be provided.");
             }
         }
 
@@ -60,6 +67,33 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         Node node = treeInput.get().getNode(dim);
         return getSpikeSize(node);
     }
+
+    /**
+     * Get the size of a spike of a particular type
+     * @param dim
+     * @return
+     */
+    public double getSpikeSize(int dim, int type) {
+        Node node = treeInput.get().getNode(dim);
+
+        // Spike indicator switch
+        if (indicatorInput.get() != null && !indicatorInput.get().getValue()) {
+            return 0;
+        }
+
+        // Suppress spikes on dated tips if requested
+        if (noSpikeOnDatedTipsInput.get()) {
+            if (node.isLeaf() && node.getHeight() > 0) {
+                return 0;
+            }
+        }
+
+        if (node.isRoot() || node.isDirectAncestor()) return 0;
+
+        double spikeMean = getSpikeMean(type);
+        return spikesInput.get().getValue(node.getNr() * nTypes + type) * spikeMean;
+    }
+
 
     /**
      * Get the size of a spike (this will be zero if the node is the root or a sampled ancestor)
@@ -145,10 +179,6 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
 
         return false;
 
-    }
-
-    public int getSpikeDimension() {
-        return spikesInput.get().getDimension();
     }
 
 }

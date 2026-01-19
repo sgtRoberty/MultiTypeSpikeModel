@@ -24,8 +24,7 @@ import java.util.*;
  */
 
 
-@Description("Prior distribution on the spike size of a branch, " +
-        "dependent on the number of hidden events along that branch")
+@Description("Prior distribution on the spike size of a branch")
 public class BranchSpikePrior extends Distribution {
 
     final public Input<Parameterization> parameterizationInput = new Input<>("parameterization",
@@ -61,12 +60,13 @@ public class BranchSpikePrior extends Distribution {
     private double lambda_i, mu_i, psi_i, t_i, A_i, B_i, finalSampleOffset;
     public int nodeCount, nTypes, spikeShapeDim;
 
-
     @Override
     public void initAndValidate() {
         parameterization = parameterizationInput.get();
         nTypes = parameterization.getNTypes();
         nodeCount = treeInput.get().getNodeCount();
+        expectedHiddenEvents = new double[nodeCount * nTypes];
+        piVals = new double[nodeCount * nTypes];
 
         if (nTypes != 1) {
             if (startTypePriorProbsInput.get() == null) {
@@ -94,20 +94,13 @@ public class BranchSpikePrior extends Distribution {
         finalSampleOffset = finalSampleOffsetInput.get().getArrayValue(0);
         computeConstants(A, B);
 
-        if(nTypes==1) {
-            expectedHiddenEvents = new double[nodeCount];
-        } else {
-            expectedHiddenEvents = new double[nTypes * nodeCount];
-            piVals = new double[nTypes * nodeCount];
-        }
-
         if (nTypes == 1) {
             spikesInput.get().setDimension(nodeCount);
         } else {
             spikesInput.get().setDimension(nodeCount * nTypes);
         }
 
-        // Ensure spike values are positive for all root and direct-ancestor nodes
+        // Ensure spike values are initialised to positive values for root and direct-ancestor branches
         for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {
             Node node = treeInput.get().getNode(nodeNr);
 
@@ -119,9 +112,8 @@ public class BranchSpikePrior extends Distribution {
                 int index = nodeNr * nTypes + i;
                 if (spikesInput.get().getValue(index)==0) spikesInput.get().setValue(index, 0.5);
             }
+
         }
-
-
     }
 
 
@@ -506,6 +498,7 @@ public class BranchSpikePrior extends Distribution {
                 // Sample spike from Gamma distribution if nSpikes > 0
                 // Uses spikeShape instead of 1/spikeShape due to different parameterisation of the Gamma distribution
                 double spike = (nSpikes == 0) ? 0.0 : Randomizer.nextGamma(alpha, spikeShape);
+
 
                 spikesInput.get().setValue(nodeNr, spike);
 

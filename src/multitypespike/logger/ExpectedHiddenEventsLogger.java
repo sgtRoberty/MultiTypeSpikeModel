@@ -20,7 +20,7 @@ public class ExpectedHiddenEventsLogger extends CalculationNode implements Funct
             new Input<>("branchSpikePrior", "Branch spike prior", Validate.REQUIRED);
     final public Input<Boolean> logPerTypeInput = new Input<>(
             "logPerType",
-            "If true, log expected hidden events for each type separately for multi-type models; " +
+            "If true, log expected hidden events of each type separately for multi-type models; " +
                     "if false, log totals per node (sum across types).",
             false  // default: sum across types
     );
