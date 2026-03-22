@@ -13,7 +13,7 @@ It extends the Gamma Spike model of Douglas et al. (2025) by allowing:
 
 ## Model overview
 
-The evolutionary distance along branch \(e\) is:
+The evolutionary distance along branch $e$ is:
 
 $$
 d^e = r^e \ \tau^e + s^e
