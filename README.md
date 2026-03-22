@@ -1,6 +1,6 @@
 # Multi-type Spike Model
 
-The **Multi-type Spike Model** is a BEAST 2 clock model for testing **punctuated evolution** under structured birth–death processes.
+The **Multi-type Spike Model** is a BEAST 2 clock model for modelling **punctuated evolution** under structured birth–death processes.
 
 It extends the Gamma Spike model of Douglas et al. (2025) by allowing:
 
