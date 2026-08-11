@@ -21,11 +21,8 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<Boolean> noSpikeOnDatedTipsInput = new Input<>("noSpikeOnDatedTips", "Set to true if dated tips should have a spike of 0", false);
 
     public int nTypes, nodeCount;
-    int spikeMeanDim;
+    int spikeMeanDim, indicatorDim;
 
-
-    // Threshold for treating a spike as numerically zero
-    private static final double spikeZeroTol = 1e-9;
 
     @Override
     public void initAndValidate() {
@@ -56,6 +53,17 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         if (nTypes > 1 && spikeMeanDim != 1 && spikeMeanDim != nTypes) {
             throw new IllegalArgumentException("For multi-type models, 'spikeMean' must have dimension 1 (shared) or nTypes (" + nTypes + ").");
         }
+
+        // Indicator dimension checks
+        if (indicatorInput.get() != null) {
+            indicatorDim = indicatorInput.get().getDimension();
+            if (nTypes == 1 && indicatorDim > 1) {
+                throw new IllegalArgumentException("Single-type model requires at most one indicator parameter.");
+            }
+            if (nTypes > 1 && indicatorDim != 1 && indicatorDim != nTypes) {
+                throw new IllegalArgumentException("For multi-type models, 'indicator' must have dimension 1 (shared) or nTypes (" + nTypes + ").");
+            }
+        }
     }
 
     /**
@@ -77,24 +85,19 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         Node node = treeInput.get().getNode(dim);
 
         // Spike indicator switch
-        if (indicatorInput.get() != null && !indicatorInput.get().getValue()) {
+        if (!getIndicator(type)) {
             return 0;
         }
 
         // Suppress spikes on dated tips if requested
-        if (noSpikeOnDatedTipsInput.get()) {
-            if (node.isLeaf() && node.getHeight() > 0) {
-                return 0;
-            }
-        }
+        if (noSpikeOnDatedTipsInput.get() && node.isLeaf() && node.getHeight() > 0) return 0;
 
         if (node.isRoot() || node.isDirectAncestor()) return 0;
 
         double spikeMean = getSpikeMean(type);
         double branchSpike = spikesInput.get().getValue(node.getNr() * nTypes + type);
 
-        if (branchSpike < spikeZeroTol) return 0;
-        else return branchSpike * spikeMean;
+        return branchSpike * spikeMean;
     }
 
 
@@ -107,26 +110,18 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
      */
     public double getSpikeSize(Node node) {
 
-        // Spike indicator switch
-        if (indicatorInput.get() != null && !indicatorInput.get().getValue()) {
-            return 0;
-        }
-
         // Suppress spikes on dated tips if requested
-        if (noSpikeOnDatedTipsInput.get()) {
-            if (node.isLeaf() && node.getHeight() > 0) {
-                return 0;
-            }
-        }
+        if (noSpikeOnDatedTipsInput.get() && node.isLeaf() && node.getHeight() > 0) return 0;
 
         if (node.isRoot() || node.isDirectAncestor()) return 0;
 
         // Compute spike size
         double spikeSum = 0;
         for (int i = 0; i < nTypes; i++) {
-            double spikeMean = getSpikeMean(i);
-            double branchSpike = spikesInput.get().getValue(node.getNr() * nTypes + i);
-            if (branchSpike >= spikeZeroTol) {
+            // Only add to the sum if this specific type indicator is on
+            if (getIndicator(i)) {
+                double spikeMean = getSpikeMean(i);
+                double branchSpike = spikesInput.get().getValue(node.getNr() * nTypes + i);
                 spikeSum += branchSpike * spikeMean;
             }
         }
@@ -139,6 +134,11 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
         else return spikeMeanInput.get().getArrayValue(type);
     }
 
+    private boolean getIndicator(int type) {
+        if (indicatorInput.get() == null) return true; // Default to 1 if no indicator input is provided
+        if (indicatorDim == 1) return indicatorInput.get().getValue(0);
+        return indicatorInput.get().getValue(type);
+    }
 
     // Rate computation
 
