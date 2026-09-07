@@ -1,14 +1,22 @@
 # Ignore IntelliJ IDEA project files
 .idea/
 /*.iml
+/production/
+/artifacts/
+/out/
 
 # Eclipse files
 .classpath
 .project
 /bin
 /.settings
-/build/
 
+# Ant build output
+/build/
+/build-beast/
+/build-beastfx/
+/deps/
+/release/
 
 # Ignore macOS system files
 .DS_Store
@@ -16,8 +24,9 @@
 .Rhistory
 .Rapp.history
 
-# Ignore BEAST2 files
-.out
-.log
-.trees
+# Ignore BEAST2 run output
+*.out
+*.log
+*.trees
+*.xml.state
 beast_services.xml
