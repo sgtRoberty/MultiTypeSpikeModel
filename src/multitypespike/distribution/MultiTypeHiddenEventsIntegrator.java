@@ -279,8 +279,19 @@ public class MultiTypeHiddenEventsIntegrator implements Loggable {
         //  p0:  (0 .. dim-1)
         //  ge: (dim .. 2*dim-1)
         ContinuousOutputModel p0geCom = p0geComArray[nodeNr];
-        p0geCom.setInterpolatedTime(time);
-        return p0geCom.getInterpolatedState();
+        try {
+            p0geCom.setInterpolatedTime(time);
+            return p0geCom.getInterpolatedState();
+        } catch (IndexOutOfBoundsException ex) {
+            // Zero-length branch (origin == node age): ODE integration was skipped.
+            // Using identity boundary conditions: p0=0 , ge=1.
+            double[] state = new double[2 * nTypes];
+            for (int i = 0; i < nTypes; i++) {
+                state[i] = 0.0;
+                state[nTypes + i] = 1.0;
+            }
+            return state;
+        }
     }
 
     public ContinuousOutputModel getPiIntegrationResultsForNode(int nodeNr) {
@@ -427,7 +438,7 @@ public class MultiTypeHiddenEventsIntegrator implements Loggable {
             return node.getLength();
         }
 
-        // Else, iterate over the children of the node
+        // Otherwise, iterate over the children of the node
         double weight = 0;
         for (final Node child : node.getChildren())
             weight += getSubTreeWeight(child);

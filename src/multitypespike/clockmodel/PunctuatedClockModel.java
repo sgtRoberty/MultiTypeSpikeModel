@@ -1,5 +1,6 @@
 package multitypespike.clockmodel;
 
+import beast.base.core.Description;
 import beast.base.core.Function;
 import beast.base.core.Input;
 import beast.base.evolution.branchratemodel.BranchRateModel;
@@ -10,7 +11,7 @@ import beast.base.inference.parameter.RealParameter;
 import beast.base.inference.util.InputUtil;
 
 
-
+@Description("Clock model that combines continuous branch rate variation with punctuated spikes of evolution at speciation events")
 public class PunctuatedClockModel extends BranchRateModel.Base {
     final public Input<Tree> treeInput = new Input<>("tree", "tree input", Input.Validate.REQUIRED);
 
@@ -27,8 +28,8 @@ public class PunctuatedClockModel extends BranchRateModel.Base {
 
     final public Input<Boolean> noSpikeOnDatedTipsInput = new Input<>("noSpikeOnDatedTips", "Set to true if dated tips should have a spike of 0", false);
 
-    final public Input<Boolean> nonCenteredInput = new Input<>("nonCentered", "If true, uses non-centered parameterisation where 'rates' are treated as N(0,1) " +
-            "and transformed internally to maintain a real-space mean of 1. If false (default), 'rates' are direct multipliers.", false);
+    final public Input<Boolean> nonCenteredInput = new Input<>("nonCentered", "If true, uses non-centered parameterisation where relaxed rates are treated as N(0,1) " +
+            "and transformed internally to maintain a real-space mean of 1. If false (default), relaxed rates are direct multipliers.", false);
 
     final public Input<RealParameter> rateSDInput = new Input<>("rateSD", "standard deviation of the relaxed-clock lognormal rate distribution. " +
             "Only required when 'nonCentered' is true.", Input.Validate.OPTIONAL);
