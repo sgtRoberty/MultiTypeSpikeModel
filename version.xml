@@ -7,7 +7,6 @@
         <provider classname="multitypespike.clockmodel.PunctuatedClockModel"/>
         <provider classname="multitypespike.distribution.BranchSpikePrior"/>
         <provider classname="multitypespike.logger.SpikeLogger"/>
-        <provider classname="multitypespike.logger.ExpectedHiddenEventsLogger"/>
         <provider classname="multitypespike.logger.HiddenEventsLogger"/>
         <provider classname="multitypespike.logger.SaltativeProportionLogger"/>
         <provider classname="multitypespike.logger.NodeTypeProbabilityLogger"/>

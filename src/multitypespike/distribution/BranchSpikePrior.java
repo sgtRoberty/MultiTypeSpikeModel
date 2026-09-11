@@ -120,6 +120,11 @@ public class BranchSpikePrior extends Distribution {
                 throw new IllegalArgumentException("BirthDeathMigrationDistribution,'bdmDistr', must be specified for multi-type analyses.");
             }
 
+            if (!bdmDistrInput.get().saveIntegrationResultsInput.get()) {
+                bdmDistrInput.get().saveIntegrationResultsInput.setValue(true, bdmDistrInput.get());
+                bdmDistrInput.get().initAndValidate();
+            }
+
             isParallelizedCalculation = parallelizeInput.get();
             minimalProportionForParallelization = minimalProportionForParallelizationInput.get();
         }

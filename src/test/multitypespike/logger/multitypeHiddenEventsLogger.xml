@@ -74,10 +74,10 @@
         <logger id="tracelog" spec="Logger" fileName="$(filebase).log" logEvery="1" model="@posterior" sort="smart">
             <log idref="spikes"/>
             <log id="nHiddenEvents" spec="multitypespike.logger.HiddenEventsLogger" branchSpikePrior="@BranchSpikePrior"/>
-            <log id="expectedHiddenEvents" spec="multitypespike.logger.ExpectedHiddenEventsLogger" branchSpikePrior="@BranchSpikePrior"/>
+            <log id="expectedHiddenEvents" spec="multitypespike.logger.HiddenEventsLogger" branchSpikePrior="@BranchSpikePrior" logExpectedValue="true"/>
 
             <log id="nHiddenEventsPerType" spec="multitypespike.logger.HiddenEventsLogger" branchSpikePrior="@BranchSpikePrior" logPerType="true"/>
-            <log id="expectedHiddenEventsPerType" spec="multitypespike.logger.ExpectedHiddenEventsLogger" branchSpikePrior="@BranchSpikePrior" logPerType="true"/>
+            <log id="expectedHiddenEventsPerType" spec="multitypespike.logger.HiddenEventsLogger" branchSpikePrior="@BranchSpikePrior" logPerType="true" logExpectedValue="true"/>
         </logger>
 
 

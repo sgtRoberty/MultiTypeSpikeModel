@@ -18,7 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-@Description("Samples and logs the exact number of hidden speciation events per branch")
+@Description("Logs the number of hidden speciation events per branch: either a stochastic sample " +
+        "from the posterior conditional distribution (default), or the analytic expected value (logExpectedValue=true)")
 public class HiddenEventsLogger extends CalculationNode implements Function, Loggable {
     final public Input<BranchSpikePrior> branchSpikePriorInput =
             new Input<>("branchSpikePrior", "Branch spike prior", Input.Validate.REQUIRED);
@@ -26,11 +27,15 @@ public class HiddenEventsLogger extends CalculationNode implements Function, Log
     final public Input<Boolean> logPerTypeInput = new Input<>(
             "logPerType","If true, log hidden events of each type separately for multi-type models; " +
                     "if false, log totals per node (sum across types).",false); // default: sum across types
+    final public Input<Boolean> logExpectedValueInput = new Input<>(
+            "logExpectedValue", "If true, log the analytic expected number of hidden events per branch " +
+                    "instead of a stochastic sample.", false);
 
 
-    private BranchSpikePrior bsp;
-    private int nTypes, nodeCount;
-    private boolean logPerType;
+    protected BranchSpikePrior bsp;
+    protected int nTypes, nodeCount;
+    protected boolean logPerType;
+    protected boolean logExpectedValue;
 
     @Override
     public void initAndValidate() {
@@ -38,6 +43,7 @@ public class HiddenEventsLogger extends CalculationNode implements Function, Log
         nTypes = bsp.nTypes;
         nodeCount = bsp.nodeCount;
         logPerType = logPerTypeInput.get();
+        logExpectedValue = logExpectedValueInput.get();
 
         if (nTypes == 1 && logPerType) throw new RuntimeException("logPerType cannot be true for single-type models.");
     }
@@ -57,6 +63,19 @@ public class HiddenEventsLogger extends CalculationNode implements Function, Log
 
     @Override
     public double getArrayValue(int dim) {
+        if (logExpectedValue) {
+            if (nTypes == 1 || logPerType) {
+                return bsp.getExpectedHiddenEvents(dim);
+            } else {
+                // Sum across all types for each node
+                double sum = 0.0;
+                for (int type = 0; type < nTypes; type++) {
+                    sum += bsp.getExpectedHiddenEvents(dim, type);
+                }
+                return sum;
+            }
+        }
+
         if(nTypes == 1) {
             return sampleHiddenEvent(dim);
         } else if(!logPerType){
@@ -77,7 +96,7 @@ public class HiddenEventsLogger extends CalculationNode implements Function, Log
     @Override
     public void init(PrintStream out) {
         String id = this.getID();
-        if (id == null || id.isEmpty()) id = "nHiddenEvents";
+        if (id == null || id.isEmpty()) id = logExpectedValue ? "expectedHiddenEvents" : "nHiddenEvents";
 
         if (logPerType) {
             for (int nodeNr = 0; nodeNr < nodeCount; nodeNr++) {

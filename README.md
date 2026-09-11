@@ -83,11 +83,36 @@ Type‑specific spike parameters allow for hypothesis testing:
 ## Dependencies
 
 - **BDMM-Prime**  
-  Vaughan & Stadler (2025). *Bayesian phylodynamic inference of multi-type population trajectories using genomic data.*  
-  *Molecular Biology and Evolution* 42: msaf130  
-  https://doi.org/10.1093/molbev/msaf130
 
-- **BEAST 2.7.7**
+- **BEAST 2.7**
+
+---
+## Installation
+
+### Building from source
+
+To build **MultiTypeSpikeModel** from source, you will need the following installed and in your execution path:
+
+- OpenJDK version 17 or greater
+- A recent version of OpenJFX (JavaFX SDK)
+- The Apache Ant build system
+
+The build expects `beast2`, `BeastFX`, and `BDMM-Prime` checked out as sibling directories relative to this repository:
+
+```bash
+git clone [https://github.com/CompEvol/beast2.git](https://github.com/CompEvol/beast2.git)
+git clone [https://github.com/CompEvol/BeastFX.git](https://github.com/CompEvol/BeastFX.git)
+git clone [https://github.com/tgvaughan/BDMM-Prime.git](https://github.com/tgvaughan/BDMM-Prime.git)
+git clone [https://github.com/EwanCiuffi/MultiTypeSpikeModel.git](https://github.com/EwanCiuffi/MultiTypeSpikeModel.git)
+```
+
+Once installed, issue the following command from the root directory of this repository:
+
+```bash
+JAVA_FX_HOME=/path/to/openjfx/lib ant
+
+JAVA_FX_HOME=/path/to/openjfx/lib ant install
+```
 
 ---
 
@@ -96,8 +121,21 @@ Type‑specific spike parameters allow for hypothesis testing:
 If you use this model, please cite:
 
 - Manuscript in preparation (TBC)  
-- Original Gamma Spike model:  
+
+- **Gamma Spike Model**
   Douglas, J., Bouckaert, R., Harris, S., Carter, C., & Wills, P. (2025).  
   *Evolution is coupled with branching across many granularities of life.*  
   Proc. R. Soc. B. 292:20250182  
   http://doi.org/10.1098/rspb.2025.0182
+  
+- **BDMM-Prime**
+  Vaughan, T. G., & Stadler, T. (2025).  
+  *Bayesian phylodynamic inference of multi-type population trajectories using genomic data.*  
+  *Molecular Biology and Evolution* 42: msaf130  
+  https://doi.org/10.1093/molbev/msaf130
+
+- **BEAST 2**
+  Bouckaert, R., Vaughan, T. G., Barido-Sottani, J., Duchêne, S., Fourment, M., Gavryushkina, A., ... & Drummond, A. J. (2019).  
+  *BEAST 2.5: An advanced software platform for Bayesian evolutionary analysis.*  
+  *PLoS Computational Biology* 15(4): e1006650  
+  https://doi.org/10.1371/journal.pcbi.1006650
