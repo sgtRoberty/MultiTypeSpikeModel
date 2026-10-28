@@ -1,5 +1,4 @@
 Forked from [EwanCiuffi/MultiTypeSpikeModel](https://github.com/EwanCiuffi/MultiTypeSpikeModel)
-# Multi-type Spike Model
 
 **MultiTypeSpikeModel** is a BEAST 2 package for modelling **punctuated evolution**: bursts of change
 ("spikes") at branching events, alongside gradual change along branches under a relaxed clock. It
@@ -116,7 +115,7 @@ Notes:
 
 If you use this package, please cite:
 
-- **Multi-type Spike Model**
+- **Multi-Type Spike Model**
   Ciuffi, E., Bickel, B., Vaughan, T. G., & Stadler, T. (in preparation).
   *Modelling trait-dependent punctuated evolution: the role of terrain ruggedness in Indo-European
 diversification.*
